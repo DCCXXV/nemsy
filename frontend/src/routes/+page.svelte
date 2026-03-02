@@ -3,12 +3,13 @@
 
 	import type { PageData } from './$types';
 	import { Tabs } from 'bits-ui';
-	import type { Subject } from '$lib/types';
+	import type { Subject, Resource } from '$lib/types';
 	import { page } from '$app/state';
 	import { goto, invalidate } from '$app/navigation';
 	import { onMount, untrack } from 'svelte';
 
 	import { Tooltip } from 'melt/components';
+	import { Dialog, Label, Separator } from 'bits-ui';
 
 	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
 	/*
@@ -28,8 +29,8 @@
 	import FolderIcon from 'phosphor-svelte/lib/FolderIcon';
 	import ImageIcon from 'phosphor-svelte/lib/ImageIcon';
 
-	import type { Resource } from '$lib/types';
 	import PdfThumbnail from '$lib/components/PdfThumbnail.svelte';
+	import ResourceView from '$lib/components/ResourceView.svelte';
 
 	function getFirstFileExt(resource: Resource): string {
 		if (!resource.files?.length) return '';
@@ -324,115 +325,133 @@
 				<div>
 					{#if selectedSubject}
 						{#each resources as resource (resource.id)}
-							{#if compactMode}
-								<div class="border-b last:border-b-0 p-2 border-zinc-200 flex gap-3">
-									{#if resource.files.length > 1}
-										<div
-											class="w-20 self-stretch rounded-none border border-yellow-400 bg-yellow-400 flex items-center justify-center"
-										>
-											<FolderIcon weight="fill" class="size-12 text-zinc-50" />
-										</div>
-									{:else if isPdf(getFirstFileExt(resource))}
-										<div
-											class="w-20 self-stretch rounded-none border border-red-400 bg-red-400 flex items-center justify-center"
-										>
-											<FilePdfIcon weight="fill" class="size-12 text-zinc-50" />
-										</div>
-									{:else if isImage(getFirstFileExt(resource))}
-										<div
-											class="w-20 self-stretch rounded-none border border-lime-400 bg-lime-400 flex items-center justify-center"
-										>
-											<ImageIcon weight="fill" class="size-12 text-zinc-50" />
-										</div>
-									{:else}
-										<div
-											class="w-20 self-stretch rounded-none border border-violet-400 bg-violet-400 flex items-center justify-center"
-										>
-											<QuestionIcon weight="fill" class="size-12 text-zinc-50" />
-										</div>
-									{/if}
-									<div class="flex flex-col flex-1 justify-between py-1">
-										<div>
-											<h2 class="text-base">{resource.title}</h2>
-											<p class="text-sm text-zinc-500">
-												@{resource.owner?.email?.split('@')[0]}
-											</p>
-										</div>
-										<div class="flex justify-end gap-2">
-											<!--
-											<button
-												class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-600 px-2 py-0.5 flex items-center cursor-pointer text-sm"
-												><ArchiveIcon class="size-4 mr-1" />Guardar</button
-											>-->
-											<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
-												<button
-													class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-2 py-0.5 flex items-center cursor-pointer text-sm rounded-none"
-													><DownloadSimpleIcon class="size-4 mr-1" />Descargar</button
-												></a
-											>
-										</div>
-									</div>
-								</div>
-							{:else}
-								<div class="border-b last:border-b-0 p-2 border-zinc-200 flex w-full gap-2">
-									<div class="flex flex-col gap-2 w-full">
-										<div class="flex align-middle">
-											<img
-												class="size-12 border border-zinc-300 mr-2 rounded-none"
-												src={resource.owner?.pfp}
-												alt="{resource.owner?.fullName}'s profile picture"
-												referrerpolicy="no-referrer"
-											/>
-											<div class="flex flex-col">
-												<h2 class="text-xl -mb-1">{resource.title}</h2>
-												<p class="text-md text-zinc-500">
-													@{resource.owner?.email?.split('@')[0]}
-												</p>
-											</div>
-										</div>
-										<div
-											class="rounded-none border border-zinc-300 overflow-hidden flex items-center justify-center bg-white"
-										>
+							<Dialog.Root>
+								<Dialog.Trigger
+									class="border-b last:border-b-0 p-2 border-zinc-200 w-full text-left cursor-pointer"
+								>
+									{#if compactMode}
+										<div class=" flex gap-3">
 											{#if resource.files.length > 1}
-												<div class="bg-yellow-200 w-full h-24 justify-center flex items-center">
-													<FolderIcon class="size-12 text-yellow-700 mr-2" />
-													<p class="text-2xl text-yellow-700">({resource.files.length} archivos)</p>
+												<div
+													class="w-20 self-stretch rounded-none border border-yellow-400 bg-yellow-400 flex items-center justify-center"
+												>
+													<FolderIcon weight="fill" class="size-12 text-zinc-50" />
 												</div>
 											{:else if isPdf(getFirstFileExt(resource))}
-												<PdfThumbnail
-													url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-														.files[0].id}/download"
-												/>
+												<div
+													class="w-20 self-stretch rounded-none border border-red-400 bg-red-400 flex items-center justify-center"
+												>
+													<FilePdfIcon weight="fill" class="size-12 text-zinc-50" />
+												</div>
 											{:else if isImage(getFirstFileExt(resource))}
-												<img
-													src="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-														.files[0].id}/download"
-													alt="imagen del recurso"
-												/>
+												<div
+													class="w-20 self-stretch rounded-none border border-lime-400 bg-lime-400 flex items-center justify-center"
+												>
+													<ImageIcon weight="fill" class="size-12 text-zinc-50" />
+												</div>
 											{:else}
-												<div class="bg-zinc-100 w-full h-24 justify-center flex items-center">
-													<QuestionIcon class="size-12 text-zinc-500 mr-2" />
-													<p class="text-2xl text-zinc-500">Formato desconocido</p>
+												<div
+													class="w-20 self-stretch rounded-none border border-violet-400 bg-violet-400 flex items-center justify-center"
+												>
+													<QuestionIcon weight="fill" class="size-12 text-zinc-50" />
 												</div>
 											{/if}
+											<div class="flex flex-col flex-1 justify-between py-1">
+												<div>
+													<h2 class="text-base">{resource.title}</h2>
+													<p class="text-sm text-zinc-500">
+														@{resource.owner?.email?.split('@')[0]}
+													</p>
+												</div>
+												<div class="flex justify-end gap-2">
+													<!--
+     											<button
+        												class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-600 px-2 py-0.5 flex items-center cursor-pointer text-sm"
+        												><ArchiveIcon class="size-4 mr-1" />Guardar</button
+     											>-->
+													<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
+														<div
+															class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-2 py-0.5 flex items-center cursor-pointer text-sm rounded-none"
+														>
+															<DownloadSimpleIcon class="size-4 mr-1" />Descargar
+														</div></a
+													>
+												</div>
+											</div>
 										</div>
-										<p class="text-zinc-700">{resource.description}</p>
-										<div class="flex justify-end mb-4 gap-2">
-											<!--
+									{:else}
+										<div class="border-b last:border-b-0 p-2 border-zinc-200 flex w-full gap-2">
+											<div class="flex flex-col gap-2 w-full">
+												<div class="flex align-middle">
+													<img
+														class="size-12 border border-zinc-300 mr-2 rounded-none"
+														src={resource.owner?.pfp}
+														alt="{resource.owner?.fullName}'s profile picture"
+														referrerpolicy="no-referrer"
+													/>
+													<div class="flex flex-col">
+														<h2 class="text-xl -mb-1">{resource.title}</h2>
+														<p class="text-md text-zinc-500">
+															@{resource.owner?.email?.split('@')[0]}
+														</p>
+													</div>
+												</div>
+												<div
+													class="rounded-none border border-zinc-300 overflow-hidden flex items-center justify-center bg-white"
+												>
+													{#if resource.files.length > 1}
+														<div class="bg-yellow-200 w-full h-24 justify-center flex items-center">
+															<FolderIcon class="size-12 text-yellow-700 mr-2" />
+															<p class="text-2xl text-yellow-700">
+																({resource.files.length} archivos)
+															</p>
+														</div>
+													{:else if isPdf(getFirstFileExt(resource))}
+														<PdfThumbnail
+															url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
+																.files[0].id}/download"
+														/>
+													{:else if isImage(getFirstFileExt(resource))}
+														<img
+															src="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
+																.files[0].id}/download"
+															alt="imagen del recurso"
+														/>
+													{:else}
+														<div class="bg-zinc-100 w-full h-24 justify-center flex items-center">
+															<QuestionIcon class="size-12 text-zinc-500 mr-2" />
+															<p class="text-2xl text-zinc-500">Formato desconocido</p>
+														</div>
+													{/if}
+												</div>
+												<p class="text-zinc-700">{resource.description}</p>
+												<div class="flex justify-end mb-4 gap-2">
+													<!--
 											<button
 												class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-600 px-3 py-1 flex items-center cursor-pointer"
 												><ArchiveIcon class="size-5 mr-2" />Guardar</button
 											>-->
-											<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
-												<button
-													class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-1 flex items-center cursor-pointer rounded-none"
-													><DownloadSimpleIcon class="size-5 mr-2" />Descargar</button
-												></a
-											>
+													<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
+														<div
+															class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-1 flex items-center cursor-pointer rounded-none"
+														>
+															<DownloadSimpleIcon class="size-5 mr-2" />Descargar
+														</div></a
+													>
+												</div>
+											</div>
 										</div>
-									</div>
-								</div>
-							{/if}
+									{/if}
+								</Dialog.Trigger>
+								<Dialog.Portal>
+									<Dialog.Overlay class="fixed inset-0 z-50 bg-black/30" />
+									<Dialog.Content
+										class="bg-zinc-50 border-zinc-300 outline-hidden fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-8rem)] h-[calc(100svh-4rem)] translate-x-[-50%] translate-y-[-50%] border overflow-hidden"
+									>
+										<ResourceView {resource} />
+									</Dialog.Content>
+								</Dialog.Portal>
+							</Dialog.Root>
 						{/each}
 					{:else}
 						<p class="text-zinc-500">Selecciona una asignatura para empezar</p>
