@@ -58,9 +58,7 @@
 			<p class="text-sm text-zinc-700 leading-relaxed">{resource.description}</p>
 		{/if}
 		<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download" class="mt-auto">
-			<div
-				class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-2 flex items-center cursor-pointer text-sm rounded-none"
-			>
+			<div class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-2 flex items-center cursor-pointer text-sm rounded-none">
 				<DownloadSimpleIcon class="size-4 mr-1" />Descargar
 			</div>
 		</a>

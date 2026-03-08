@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/url"
 	"time"
@@ -34,8 +35,9 @@ func (s *S3Client) Upload(ctx context.Context, key string, reader io.Reader, siz
 	return err
 }
 
-func (s *S3Client) GetPresignedURL(ctx context.Context, key string, duration time.Duration) (string, error) {
+func (s *S3Client) GetPresignedURL(ctx context.Context, key string, duration time.Duration, filename string) (string, error) {
 	reqParams := make(url.Values)
+	reqParams.Set("response-content-disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	u, err := s.client.PresignedGetObject(ctx, s.bucket, key, duration, reqParams)
 	if err != nil {
 		return "", err

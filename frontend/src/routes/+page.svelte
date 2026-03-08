@@ -9,8 +9,8 @@
 	import { onMount, untrack } from 'svelte';
 
 	import { Tooltip } from 'melt/components';
-	import { Dialog, Label, Separator } from 'bits-ui';
-
+	import { Dialog } from 'bits-ui';
+	
 	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
 	/*
 	import ArrowFatUpIcon from 'phosphor-svelte/lib/ArrowFatUpIcon';
@@ -28,8 +28,10 @@
 	import ClockClockwiseIcon from 'phosphor-svelte/lib/ClockClockwiseIcon';
 	import FolderIcon from 'phosphor-svelte/lib/FolderIcon';
 	import ImageIcon from 'phosphor-svelte/lib/ImageIcon';
+	import MarkdownLogoIcon from 'phosphor-svelte/lib/MarkdownLogoIcon';
 
 	import PdfThumbnail from '$lib/components/PdfThumbnail.svelte';
+	import MarkdownViewer from '$lib/components/MarkdownViewer.svelte';
 	import ResourceView from '$lib/components/ResourceView.svelte';
 
 	function getFirstFileExt(resource: Resource): string {
@@ -45,6 +47,10 @@
 
 	function isPdf(ext: string): boolean {
 		return ext === 'pdf';
+	}
+
+	function isMarkdown(ext: string): boolean {
+		return ext === 'md' || ext === 'markdown';
 	}
 
 	let { data }: { data: PageData } = $props();
@@ -83,17 +89,6 @@
 			loadingMore = false;
 		}
 	}
-
-	onMount(() => {
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries[0].isIntersecting) loadMore();
-			},
-			{ rootMargin: '300px' }
-		);
-		if (sentinel) observer.observe(sentinel);
-		return () => observer.disconnect();
-	});
 
 	let localPinOverrides = $state(new Map<number, boolean>());
 
@@ -163,21 +158,24 @@
 
 	onMount(() => {
 		const savedTab = localStorage.getItem('lastTab');
-		if (savedTab && tabIds.includes(savedTab)) {
-			selectedTab = savedTab;
-		}
+		if (savedTab && tabIds.includes(savedTab)) selectedTab = savedTab;
 
 		const savedCompactMode = localStorage.getItem('compactMode');
-		if (savedCompactMode === 'true') {
-			compactMode = true;
-		}
+		if (savedCompactMode === 'true') compactMode = true;
 
 		if (!selectedSubjectID) {
 			const saved = localStorage.getItem('lastSubject');
-			if (saved) {
-				goto(`?subject=${saved}`, { replaceState: true });
-			}
+			if (saved) goto(`?subject=${saved}`, { replaceState: true });
 		}
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting) loadMore();
+			},
+			{ rootMargin: '300px' }
+		);
+		if (sentinel) observer.observe(sentinel);
+		return () => observer.disconnect();
 	});
 </script>
 
@@ -349,6 +347,12 @@
 												>
 													<ImageIcon weight="fill" class="size-12 text-zinc-50" />
 												</div>
+											{:else if isMarkdown(getFirstFileExt(resource))}
+												<div
+													class="w-20 self-stretch rounded-none border border-blue-400 bg-blue-400 flex items-center justify-center"
+												>
+													<MarkdownLogoIcon weight="fill" class="size-12 text-zinc-50" />
+												</div>
 											{:else}
 												<div
 													class="w-20 self-stretch rounded-none border border-violet-400 bg-violet-400 flex items-center justify-center"
@@ -370,9 +374,7 @@
         												><ArchiveIcon class="size-4 mr-1" />Guardar</button
      											>-->
 													<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
-														<div
-															class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-2 py-0.5 flex items-center cursor-pointer text-sm rounded-none"
-														>
+														<div class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-2 py-0.5 flex items-center cursor-pointer text-sm rounded-none">
 															<DownloadSimpleIcon class="size-4 mr-1" />Descargar
 														</div></a
 													>
@@ -396,29 +398,40 @@
 														</p>
 													</div>
 												</div>
-												<div
-													class="rounded-none border border-zinc-300 overflow-hidden flex items-center justify-center bg-white"
-												>
+												<div class="rounded-none overflow-hidden">
 													{#if resource.files.length > 1}
-														<div class="bg-yellow-200 w-full h-24 justify-center flex items-center">
-															<FolderIcon class="size-12 text-yellow-700 mr-2" />
-															<p class="text-2xl text-yellow-700">
-																({resource.files.length} archivos)
-															</p>
+														<div
+															class="bg-yellow-200 border border-yellow-300 w-full h-36 justify-center flex items-center"
+														>
+															<FolderIcon weight="fill" class="size-24 text-yellow-500 mr-2" />
 														</div>
 													{:else if isPdf(getFirstFileExt(resource))}
-														<PdfThumbnail
-															url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-																.files[0].id}/download"
-														/>
+														<div class="border border-zinc-300">
+															<PdfThumbnail
+																url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
+																	.files[0].id}/download"
+															/>
+														</div>
 													{:else if isImage(getFirstFileExt(resource))}
 														<img
+															class="border border-zinc-300"
 															src="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
 																.files[0].id}/download"
 															alt="imagen del recurso"
 														/>
+													{:else if isMarkdown(getFirstFileExt(resource))}
+														<div
+															class="border border-zinc-300 w-full h-100 overflow-hidden pointer-events-none"
+														>
+															<MarkdownViewer
+																url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
+																	.files[0].id}/download"
+															/>
+														</div>
 													{:else}
-														<div class="bg-zinc-100 w-full h-24 justify-center flex items-center">
+														<div
+															class="border border-zinc-300 bg-zinc-100 w-full h-24 justify-center flex items-center"
+														>
 															<QuestionIcon class="size-12 text-zinc-500 mr-2" />
 															<p class="text-2xl text-zinc-500">Formato desconocido</p>
 														</div>
@@ -432,9 +445,7 @@
 												><ArchiveIcon class="size-5 mr-2" />Guardar</button
 											>-->
 													<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
-														<div
-															class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-1 flex items-center cursor-pointer rounded-none"
-														>
+														<div class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-1 flex items-center cursor-pointer rounded-none">
 															<DownloadSimpleIcon class="size-5 mr-2" />Descargar
 														</div></a
 													>

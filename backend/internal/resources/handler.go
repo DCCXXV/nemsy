@@ -308,7 +308,7 @@ func (h *Handler) Download(w http.ResponseWriter, r *http.Request) {
 
 	// Single file: redirect to presigned URL
 	if len(files) == 1 {
-		presigned, err := h.app.Storage.GetPresignedURL(r.Context(), files[0].S3Key, 15*time.Minute)
+		presigned, err := h.app.Storage.GetPresignedURL(r.Context(), files[0].S3Key, 15*time.Minute, files[0].FileName)
 		if err != nil {
 			log.Printf("Failed to generate presigned URL: %v", err)
 			http.Error(w, "download error", http.StatusInternalServerError)

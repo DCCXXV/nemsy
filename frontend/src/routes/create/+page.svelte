@@ -49,7 +49,7 @@
 				: filesArray[0]
 	);
 
-	const blobUrls = new Map<File, string>();
+	const blobUrls = new WeakMap<object, string>();
 
 	function getBlobUrl(file: File): string {
 		if (!blobUrls.has(file)) {
@@ -61,7 +61,10 @@
 	const previewUrl = $derived(previewFile ? getBlobUrl(previewFile) : null);
 
 	onDestroy(() => {
-		for (const url of blobUrls.values()) URL.revokeObjectURL(url);
+		for (const file of selectedFiles) {
+			const url = blobUrls.get(file);
+			if (url) URL.revokeObjectURL(url);
+		}
 	});
 
 	function selectPreview(file: File) {
@@ -309,7 +312,9 @@
 		</div>
 
 		{#if filesArray.length > 0}
-			<div class="bg-zinc-50 border border-zinc-300 w-[43vw] shrink-0 p-4 flex flex-col gap-3 h-[80vh]">
+			<div
+				class="bg-zinc-50 border border-zinc-300 w-[43vw] shrink-0 p-4 flex flex-col gap-3 h-[80vh]"
+			>
 				<div class="flex flex-wrap gap-2">
 					{#each filesArray as file (file.name + file.size)}
 						<button
