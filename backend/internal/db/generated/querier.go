@@ -23,6 +23,7 @@ type Querier interface {
 	GetSubject(ctx context.Context, id int32) (Subject, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetUserWithStudy(ctx context.Context, id int32) (GetUserWithStudyRow, error)
 	GetUserWithStudyByEmail(ctx context.Context, email string) (GetUserWithStudyByEmailRow, error)
 	ListFilesByResource(ctx context.Context, resourceID int32) ([]ResourceFile, error)

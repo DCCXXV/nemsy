@@ -38,13 +38,11 @@ func generateState() string {
 
 func GenerateJWT(userInfo UserInfo, secret []byte) (string, error) {
 	claims := jwt.MapClaims{
-		"sub":     userInfo.GoogleSub,
-		"email":   userInfo.Email,
-		"name":    userInfo.FullName,
-		"picture": userInfo.Picture,
-		"hd":      userInfo.Hd,
-		"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
-		"iat":     time.Now().Unix(),
+		"sub":   userInfo.GoogleSub,
+		"email": userInfo.Email,
+		"hd":    userInfo.Hd,
+		"exp":   time.Now().Add(7 * 24 * time.Hour).Unix(),
+		"iat":   time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(secret)
@@ -54,8 +52,6 @@ func GenerateJWTWithUserID(info UserInfo, userID int, secret []byte) (string, er
 	claims := jwt.MapClaims{
 		"sub":     info.GoogleSub,
 		"email":   info.Email,
-		"name":    info.FullName,
-		"picture": info.Picture,
 		"hd":      info.Hd,
 		"user_id": userID,
 		"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
@@ -73,14 +69,6 @@ func ExtractUserInfo(claims map[string]any) UserInfo {
 
 	if email, ok := claims["email"].(string); ok {
 		info.Email = email
-	}
-
-	if name, ok := claims["name"].(string); ok {
-		info.FullName = name
-	}
-
-	if picture, ok := claims["picture"].(string); ok {
-		info.Picture = picture
 	}
 
 	if hd, ok := claims["hd"].(string); ok {

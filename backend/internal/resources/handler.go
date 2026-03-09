@@ -44,10 +44,9 @@ type ResourceResponse struct {
 }
 
 type Owner struct {
-	ID       int32   `json:"id"`
-	FullName *string `json:"fullName,omitempty"`
-	Email    string  `json:"email"`
-	Pfp      *string `json:"pfp,omitempty"`
+	ID       int32  `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -265,18 +264,13 @@ func (h *Handler) ListBySubject(w http.ResponseWriter, r *http.Request) {
 			Files:     fileResponses,
 			CreatedAt: res.CreatedAt.Time.Format(time.RFC3339),
 			Owner: &Owner{
-				ID:    res.OwnerID,
-				Email: res.OwnerEmail,
+				ID:       res.OwnerID,
+				Username: res.OwnerUsername,
+				Email:    res.OwnerEmail,
 			},
 		}
 		if res.Description.Valid {
 			rr.Description = &res.Description.String
-		}
-		if res.OwnerFullName.Valid {
-			rr.Owner.FullName = &res.OwnerFullName.String
-		}
-		if res.OwnerPfp.Valid {
-			rr.Owner.Pfp = &res.OwnerPfp.String
 		}
 
 		resp = append(resp, rr)
@@ -422,18 +416,13 @@ func buildResourceResponse(res db.GetResourceWithOwnerRow, files []db.ResourceFi
 		Files:     fileResponses,
 		CreatedAt: res.CreatedAt.Time.Format(time.RFC3339),
 		Owner: &Owner{
-			ID:    res.OwnerID,
-			Email: res.OwnerEmail,
+			ID:       res.OwnerID,
+			Username: res.OwnerUsername,
+			Email:    res.OwnerEmail,
 		},
 	}
 	if res.Description.Valid {
 		rr.Description = &res.Description.String
-	}
-	if res.OwnerFullName.Valid {
-		rr.Owner.FullName = &res.OwnerFullName.String
-	}
-	if res.OwnerPfp.Valid {
-		rr.Owner.Pfp = &res.OwnerPfp.String
 	}
 	return rr
 }

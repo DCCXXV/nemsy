@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -14,8 +15,6 @@ func TestJWTGenerationAndParsing(t *testing.T) {
 	userInfo := UserInfo{
 		GoogleSub: "123456789",
 		Email:     "test@ucm.es",
-		FullName:  "Test User",
-		Picture:   "https://example.com/photo.jpg",
 		Hd:        "ucm.es",
 	}
 
@@ -52,14 +51,6 @@ func TestJWTGenerationAndParsing(t *testing.T) {
 		t.Errorf("Expected sub %s, got %v", userInfo.GoogleSub, claims["sub"])
 	}
 
-	if claims["name"] != userInfo.FullName {
-		t.Errorf("Expected name %s, got %v", userInfo.FullName, claims["name"])
-	}
-
-	if claims["picture"] != userInfo.Picture {
-		t.Errorf("Expected picture %s, got %v", userInfo.Picture, claims["picture"])
-	}
-
 	if claims["hd"] != userInfo.Hd {
 		t.Errorf("Expected hd %s, got %v", userInfo.Hd, claims["hd"])
 	}
@@ -75,11 +66,9 @@ func TestJWTGenerationAndParsing(t *testing.T) {
 
 func TestExtractUserInfo(t *testing.T) {
 	claims := map[string]any{
-		"sub":     "123456789",
-		"email":   "test@example.com",
-		"name":    "John Doe",
-		"picture": "https://example.com/photo.jpg",
-		"hd":      "example.com",
+		"sub":   "123456789",
+		"email": "test@example.com",
+		"hd":    "example.com",
 	}
 
 	userInfo := ExtractUserInfo(claims)
@@ -90,14 +79,6 @@ func TestExtractUserInfo(t *testing.T) {
 
 	if userInfo.Email != "test@example.com" {
 		t.Errorf("Expected Email 'test@example.com', got '%s'", userInfo.Email)
-	}
-
-	if userInfo.FullName != "John Doe" {
-		t.Errorf("Expected FullName 'John Doe', got '%s'", userInfo.FullName)
-	}
-
-	if userInfo.Picture != "https://example.com/photo.jpg" {
-		t.Errorf("Expected Picture URL, got '%s'", userInfo.Picture)
 	}
 
 	if userInfo.Hd != "example.com" {
@@ -120,14 +101,6 @@ func TestExtractUserInfo_MissingFields(t *testing.T) {
 		t.Errorf("Expected empty GoogleSub, got '%s'", userInfo.GoogleSub)
 	}
 
-	if userInfo.FullName != "" {
-		t.Errorf("Expected empty FullName, got '%s'", userInfo.FullName)
-	}
-
-	if userInfo.Picture != "" {
-		t.Errorf("Expected empty Picture, got '%s'", userInfo.Picture)
-	}
-
 	if userInfo.Hd != "" {
 		t.Errorf("Expected empty Hd, got '%s'", userInfo.Hd)
 	}
@@ -137,7 +110,6 @@ func TestExtractUserInfo_WrongTypes(t *testing.T) {
 	claims := map[string]any{
 		"sub":   123,
 		"email": "test@example.com",
-		"name":  true,
 	}
 
 	userInfo := ExtractUserInfo(claims)
@@ -148,10 +120,6 @@ func TestExtractUserInfo_WrongTypes(t *testing.T) {
 
 	if userInfo.GoogleSub != "" {
 		t.Errorf("Expected empty GoogleSub (wrong type), got '%s'", userInfo.GoogleSub)
-	}
-
-	if userInfo.FullName != "" {
-		t.Errorf("Expected empty FullName (wrong type), got '%s'", userInfo.FullName)
 	}
 }
 
@@ -195,10 +163,9 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	userInfo := UserInfo{
 		GoogleSub: "123456",
 		Email:     "test@example.com",
-		FullName:  "Test User",
 	}
 
-	tokenStr, err := GenerateJWT(userInfo, secret)
+	tokenStr, err := GenerateJWTWithUserID(userInfo, 42, secret)
 	if err != nil {
 		t.Fatal("Error generating JWT:", err)
 	}
@@ -297,7 +264,7 @@ func TestAuthMiddleware_WrongSecret(t *testing.T) {
 }
 
 func TestStateStore(t *testing.T) {
-	store := NewStateStore(1000)
+	store := NewStateStore(time.Second * 30)
 
 	state := "test-state-123"
 	store.Put(state)
@@ -312,7 +279,7 @@ func TestStateStore(t *testing.T) {
 }
 
 func TestStateStore_Invalid(t *testing.T) {
-	store := NewStateStore(1000)
+	store := NewStateStore(time.Second * 30)
 
 	if store.Check("nonexistent-state") {
 		t.Error("Nonexistent state should not be valid")

@@ -10,7 +10,7 @@
 
 	import { Tooltip } from 'melt/components';
 	import { Dialog } from 'bits-ui';
-	
+
 	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
 	/*
 	import ArrowFatUpIcon from 'phosphor-svelte/lib/ArrowFatUpIcon';
@@ -33,6 +33,7 @@
 	import PdfThumbnail from '$lib/components/PdfThumbnail.svelte';
 	import MarkdownViewer from '$lib/components/MarkdownViewer.svelte';
 	import ResourceView from '$lib/components/ResourceView.svelte';
+	import UserAvatar from '$lib/components/UserAvatar.svelte';
 
 	function getFirstFileExt(resource: Resource): string {
 		if (!resource.files?.length) return '';
@@ -364,17 +365,19 @@
 												<div>
 													<h2 class="text-base">{resource.title}</h2>
 													<p class="text-sm text-zinc-500">
-														@{resource.owner?.email?.split('@')[0]}
+														@{resource.owner?.username}
 													</p>
 												</div>
 												<div class="flex justify-end gap-2">
 													<!--
-     											<button
-        												class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-600 px-2 py-0.5 flex items-center cursor-pointer text-sm"
-        												><ArchiveIcon class="size-4 mr-1" />Guardar</button
-     											>-->
+												<button
+														class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-600 px-2 py-0.5 flex items-center cursor-pointer text-sm"
+														><ArchiveIcon class="size-4 mr-1" />Guardar</button
+												>-->
 													<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
-														<div class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-2 py-0.5 flex items-center cursor-pointer text-sm rounded-none">
+														<div
+															class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-2 py-0.5 flex items-center cursor-pointer text-sm rounded-none"
+														>
 															<DownloadSimpleIcon class="size-4 mr-1" />Descargar
 														</div></a
 													>
@@ -384,17 +387,14 @@
 									{:else}
 										<div class="border-b last:border-b-0 p-2 border-zinc-200 flex w-full gap-2">
 											<div class="flex flex-col gap-2 w-full">
-												<div class="flex align-middle">
-													<img
-														class="size-12 border border-zinc-300 mr-2 rounded-none"
-														src={resource.owner?.pfp}
-														alt="{resource.owner?.fullName}'s profile picture"
-														referrerpolicy="no-referrer"
-													/>
+												<div class="flex items-center gap-2">
+													{#if resource.owner}
+														<UserAvatar username={resource.owner.username} />
+													{/if}
 													<div class="flex flex-col">
 														<h2 class="text-xl -mb-1">{resource.title}</h2>
 														<p class="text-md text-zinc-500">
-															@{resource.owner?.email?.split('@')[0]}
+															@{resource.owner?.username}
 														</p>
 													</div>
 												</div>
@@ -445,7 +445,9 @@
 												><ArchiveIcon class="size-5 mr-2" />Guardar</button
 											>-->
 													<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
-														<div class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-1 flex items-center cursor-pointer rounded-none">
+														<div
+															class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-1 flex items-center cursor-pointer rounded-none"
+														>
 															<DownloadSimpleIcon class="size-5 mr-2" />Descargar
 														</div></a
 													>

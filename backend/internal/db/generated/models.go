@@ -49,8 +49,7 @@ type User struct {
 	StudyID   pgtype.Int4
 	GoogleSub string
 	Email     string
-	FullName  pgtype.Text
-	Pfp       pgtype.Text
 	Hd        pgtype.Text
 	CreatedAt pgtype.Timestamp
+	Username  string
 }

@@ -1,8 +1,7 @@
 export interface User {
 	id: number;
 	email: string;
-	fullName?: string;
-	pfp?: string;
+	username: string;
 	hd?: string;
 	studyId?: number;
 	studyName?: string;
@@ -34,8 +33,7 @@ export interface Resource {
 	createdAt: string;
 	owner?: {
 		id: number;
-		fullName?: string;
+		username: string;
 		email: string;
-		pfp?: string;
 	};
 }

@@ -24,8 +24,7 @@ func NewHandler(a *app.App) *Handler {
 type UserResponse struct {
 	ID        int32   `json:"id"`
 	Email     string  `json:"email"`
-	FullName  *string `json:"fullName,omitempty"`
-	Pfp       *string `json:"pfp,omitempty"`
+	Username  string  `json:"username"`
 	Hd        *string `json:"hd,omitempty"`
 	StudyID   *int32  `json:"studyId,omitempty"`
 	StudyName *string `json:"studyName,omitempty"`
@@ -45,14 +44,9 @@ func (h *Handler) MeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := UserResponse{
-		ID:    user.ID,
-		Email: user.Email,
-	}
-	if user.FullName.Valid {
-		resp.FullName = &user.FullName.String
-	}
-	if user.Pfp.Valid {
-		resp.Pfp = &user.Pfp.String
+		ID:       user.ID,
+		Email:    user.Email,
+		Username: user.Username,
 	}
 	if user.Hd.Valid {
 		resp.Hd = &user.Hd.String
@@ -244,14 +238,9 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := UserResponse{
-		ID:    user.ID,
-		Email: user.Email,
-	}
-	if user.FullName.Valid {
-		resp.FullName = &user.FullName.String
-	}
-	if user.Pfp.Valid {
-		resp.Pfp = &user.Pfp.String
+		ID:       user.ID,
+		Email:    user.Email,
+		Username: user.Username,
 	}
 	if user.Hd.Valid {
 		resp.Hd = &user.Hd.String

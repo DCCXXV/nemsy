@@ -13,18 +13,17 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
-    google_sub, study_id, email, full_name, pfp, hd) VALUES (
-    $1, $2, $3, $4, $5, $6
+    google_sub, study_id, email, username, hd) VALUES (
+    $1, $2, $3, $4, $5
 )
-RETURNING id, study_id, google_sub, email, full_name, pfp, hd, created_at
+RETURNING id, study_id, google_sub, email, hd, created_at, username
 `
 
 type CreateUserParams struct {
 	GoogleSub string
 	StudyID   pgtype.Int4
 	Email     string
-	FullName  pgtype.Text
-	Pfp       pgtype.Text
+	Username  string
 	Hd        pgtype.Text
 }
 
@@ -33,8 +32,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.GoogleSub,
 		arg.StudyID,
 		arg.Email,
-		arg.FullName,
-		arg.Pfp,
+		arg.Username,
 		arg.Hd,
 	)
 	var i User
@@ -43,16 +41,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.StudyID,
 		&i.GoogleSub,
 		&i.Email,
-		&i.FullName,
-		&i.Pfp,
 		&i.Hd,
 		&i.CreatedAt,
+		&i.Username,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, study_id, google_sub, email, full_name, pfp, hd, created_at FROM users
+SELECT id, study_id, google_sub, email, hd, created_at, username FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -64,16 +61,15 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 		&i.StudyID,
 		&i.GoogleSub,
 		&i.Email,
-		&i.FullName,
-		&i.Pfp,
 		&i.Hd,
 		&i.CreatedAt,
+		&i.Username,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, study_id, google_sub, email, full_name, pfp, hd, created_at FROM users
+SELECT id, study_id, google_sub, email, hd, created_at, username FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -85,17 +81,36 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.StudyID,
 		&i.GoogleSub,
 		&i.Email,
-		&i.FullName,
-		&i.Pfp,
 		&i.Hd,
 		&i.CreatedAt,
+		&i.Username,
+	)
+	return i, err
+}
+
+const getUserByUsername = `-- name: GetUserByUsername :one
+SELECT id, study_id, google_sub, email, hd, created_at, username FROM users
+WHERE username = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByUsername, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.StudyID,
+		&i.GoogleSub,
+		&i.Email,
+		&i.Hd,
+		&i.CreatedAt,
+		&i.Username,
 	)
 	return i, err
 }
 
 const getUserWithStudy = `-- name: GetUserWithStudy :one
 SELECT
-    u.id, u.study_id, u.google_sub, u.email, u.full_name, u.pfp, u.hd, u.created_at,
+    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username,
     s.id AS study_id_fk,
     s.name AS study_name
 FROM users u
@@ -108,10 +123,9 @@ type GetUserWithStudyRow struct {
 	StudyID   pgtype.Int4
 	GoogleSub string
 	Email     string
-	FullName  pgtype.Text
-	Pfp       pgtype.Text
 	Hd        pgtype.Text
 	CreatedAt pgtype.Timestamp
+	Username  string
 	StudyIDFk pgtype.Int4
 	StudyName pgtype.Text
 }
@@ -124,10 +138,9 @@ func (q *Queries) GetUserWithStudy(ctx context.Context, id int32) (GetUserWithSt
 		&i.StudyID,
 		&i.GoogleSub,
 		&i.Email,
-		&i.FullName,
-		&i.Pfp,
 		&i.Hd,
 		&i.CreatedAt,
+		&i.Username,
 		&i.StudyIDFk,
 		&i.StudyName,
 	)
@@ -136,7 +149,7 @@ func (q *Queries) GetUserWithStudy(ctx context.Context, id int32) (GetUserWithSt
 
 const getUserWithStudyByEmail = `-- name: GetUserWithStudyByEmail :one
 SELECT
-    u.id, u.study_id, u.google_sub, u.email, u.full_name, u.pfp, u.hd, u.created_at,
+    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username,
     s.id AS study_id_fk,
     s.name AS study_name
 FROM users u
@@ -149,10 +162,9 @@ type GetUserWithStudyByEmailRow struct {
 	StudyID   pgtype.Int4
 	GoogleSub string
 	Email     string
-	FullName  pgtype.Text
-	Pfp       pgtype.Text
 	Hd        pgtype.Text
 	CreatedAt pgtype.Timestamp
+	Username  string
 	StudyIDFk pgtype.Int4
 	StudyName pgtype.Text
 }
@@ -165,10 +177,9 @@ func (q *Queries) GetUserWithStudyByEmail(ctx context.Context, email string) (Ge
 		&i.StudyID,
 		&i.GoogleSub,
 		&i.Email,
-		&i.FullName,
-		&i.Pfp,
 		&i.Hd,
 		&i.CreatedAt,
+		&i.Username,
 		&i.StudyIDFk,
 		&i.StudyName,
 	)
@@ -179,7 +190,7 @@ const updateUserStudy = `-- name: UpdateUserStudy :one
 UPDATE users
 SET study_id = $2
 WHERE id = $1
-RETURNING id, study_id, google_sub, email, full_name, pfp, hd, created_at
+RETURNING id, study_id, google_sub, email, hd, created_at, username
 `
 
 type UpdateUserStudyParams struct {
@@ -195,10 +206,9 @@ func (q *Queries) UpdateUserStudy(ctx context.Context, arg UpdateUserStudyParams
 		&i.StudyID,
 		&i.GoogleSub,
 		&i.Email,
-		&i.FullName,
-		&i.Pfp,
 		&i.Hd,
 		&i.CreatedAt,
+		&i.Username,
 	)
 	return i, err
 }

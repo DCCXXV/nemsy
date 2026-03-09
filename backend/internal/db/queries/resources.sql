@@ -5,7 +5,7 @@ WHERE id = $1 LIMIT 1;
 -- name: GetResourceWithOwner :one
 SELECT
     r.id, r.title, r.description, r.created_at,
-    u.id AS owner_id, u.full_name AS owner_full_name, u.email AS owner_email, u.pfp AS owner_pfp
+    u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
 WHERE r.id = $1 LIMIT 1;
@@ -18,7 +18,7 @@ ORDER BY created_at DESC;
 -- name: ListResourcesBySubjectWithOwner :many
 SELECT
     r.id, r.title, r.description, r.created_at,
-    u.id AS owner_id, u.full_name AS owner_full_name, u.email AS owner_email, u.pfp AS owner_pfp
+    u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
 WHERE r.subject_id = $1
@@ -27,7 +27,7 @@ ORDER BY r.created_at DESC;
 -- name: ListResourcesBySubjectWithOwnerPaginated :many
 SELECT
     r.id, r.title, r.description, r.created_at,
-    u.id AS owner_id, u.full_name AS owner_full_name, u.email AS owner_email, u.pfp AS owner_pfp
+    u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
 WHERE r.subject_id = $1

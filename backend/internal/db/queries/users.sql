@@ -15,6 +15,10 @@ WHERE u.id = $1 LIMIT 1;
 SELECT * FROM users
 WHERE email = $1 LIMIT 1;
 
+-- name: GetUserByUsername :one
+SELECT * FROM users
+WHERE username = $1 LIMIT 1;
+
 -- name: GetUserWithStudyByEmail :one
 SELECT
     u.*,
@@ -26,8 +30,8 @@ WHERE u.email = $1 LIMIT 1;
 
 -- name: CreateUser :one
 INSERT INTO users (
-    google_sub, study_id, email, full_name, pfp, hd) VALUES (
-    $1, $2, $3, $4, $5, $6
+    google_sub, study_id, email, username, hd) VALUES (
+    $1, $2, $3, $4, $5
 )
 RETURNING *;
 

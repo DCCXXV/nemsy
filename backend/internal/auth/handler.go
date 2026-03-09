@@ -2,11 +2,15 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	db "github.com/DCCXXV/Nemsy/backend/internal/db/generated"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/idtoken"
@@ -31,10 +35,9 @@ func NewHandler(cfg *oauth2.Config, secret []byte, store *StateStore, queries *d
 type UserInfo struct {
 	GoogleSub string
 	Email     string
-	FullName  string
-	Picture   string
 	Hd        string
 }
+
 
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -93,14 +96,28 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	user, err = h.Queries.GetUserByEmail(r.Context(), userInfo.Email)
 	if err == pgx.ErrNoRows {
 		log.Println("User not found, creating new user:", userInfo.Email)
-		user, err = h.Queries.CreateUser(r.Context(), db.CreateUserParams{
-			GoogleSub: userInfo.GoogleSub,
-			StudyID:   pgtype.Int4{Valid: false},
-			Email:     userInfo.Email,
-			FullName:  stringToPgText(userInfo.FullName),
-			Pfp:       stringToPgText(userInfo.Picture),
-			Hd:        stringToPgText(userInfo.Hd),
-		})
+		base := strings.Split(userInfo.Email, "@")[0]
+		for i := 0; i <= 100; i++ {
+			username := base
+			if i > 0 {
+				username = fmt.Sprintf("%s%d", base, i)
+			}
+			user, err = h.Queries.CreateUser(r.Context(), db.CreateUserParams{
+				GoogleSub: userInfo.GoogleSub,
+				StudyID:   pgtype.Int4{Valid: false},
+				Email:     userInfo.Email,
+				Username:  username,
+				Hd:        stringToPgText(userInfo.Hd),
+			})
+			if err == nil {
+				break
+			}
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" && strings.Contains(pgErr.ConstraintName, "username") {
+				continue
+			}
+			break
+		}
 		newUser = true
 	}
 	if err != nil {
