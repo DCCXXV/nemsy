@@ -97,6 +97,9 @@ func main() {
 		protected.Delete("/api/me/subjects/{id}/pin", usersHandler.UnpinSubject)
 
 		protected.Get("/api/users/{id}", usersHandler.Get)
+		protected.Get("/api/users/by/{username}", usersHandler.GetByUsername)
+
+		protected.Get("/api/resources/by/{username}", resourcesHandler.ListByUser)
 
 		protected.Get("/api/studies", studiesHandler.ListStudies)
 

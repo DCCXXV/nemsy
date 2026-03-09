@@ -280,6 +280,54 @@ func (h *Handler) ListBySubject(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func (h *Handler) ListByUser(w http.ResponseWriter, r *http.Request) {
+	username := chi.URLParam(r, "username")
+
+	user, err := h.app.Queries.GetUserByUsername(r.Context(), username)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	resources, err := h.app.Queries.ListResourcesByOwner(r.Context(), user.ID)
+	if err != nil {
+		log.Printf("Failed to list resources for user %s: %v", username, err)
+		http.Error(w, "database error", http.StatusInternalServerError)
+		return
+	}
+
+	type resourceItem struct {
+		ID          int32   `json:"id"`
+		Title       string  `json:"title"`
+		Description *string `json:"description,omitempty"`
+		FileCount   int     `json:"fileCount"`
+		CreatedAt   string  `json:"createdAt"`
+	}
+
+	resp := make([]resourceItem, 0, len(resources))
+	for _, res := range resources {
+		files, err := h.app.Queries.ListFilesByResource(r.Context(), res.ID)
+		if err != nil {
+			log.Printf("Failed to list files for resource %d: %v", res.ID, err)
+			http.Error(w, "database error", http.StatusInternalServerError)
+			return
+		}
+		item := resourceItem{
+			ID:        res.ID,
+			Title:     res.Title,
+			FileCount: len(files),
+			CreatedAt: res.CreatedAt.Time.Format(time.RFC3339),
+		}
+		if res.Description.Valid {
+			item.Description = &res.Description.String
+		}
+		resp = append(resp, item)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 func (h *Handler) Download(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)

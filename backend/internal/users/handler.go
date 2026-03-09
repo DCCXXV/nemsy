@@ -252,3 +252,32 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
+func (h *Handler) GetByUsername(w http.ResponseWriter, r *http.Request) {
+	username := chi.URLParam(r, "username")
+	if username == "" {
+		http.Error(w, "invalid username", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.app.Queries.GetUserByUsername(r.Context(), username)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	resp := UserResponse{
+		ID:       user.ID,
+		Email:    user.Email,
+		Username: user.Username,
+	}
+	if user.Hd.Valid {
+		resp.Hd = &user.Hd.String
+	}
+	if user.StudyID.Valid {
+		resp.StudyID = &user.StudyID.Int32
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
