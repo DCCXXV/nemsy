@@ -35,6 +35,8 @@
 	import ResourceView from '$lib/components/ResourceView.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 
+	import SmileyNervousIcon from 'phosphor-svelte/lib/SmileyNervousIcon';
+
 	function getFirstFileExt(resource: Resource): string {
 		if (!resource.files?.length) return '';
 		const name = resource.files[0].fileName;
@@ -465,6 +467,18 @@
 									</Dialog.Content>
 								</Dialog.Portal>
 							</Dialog.Root>
+						{:else}
+							<div
+								class="flex flex-col items-center justify-center py-58 px-6 text-zinc-400 gap-3 border-b border-zinc-300"
+							>
+								<SmileyNervousIcon weight="thin" class="size-16 text-zinc-400" />
+								<p class="text-center text-zinc-500 text-lg">
+									Todavía no hay recursos para esta asignatura.
+								</p>
+								<div class="flex items-center gap-1">
+									<p>¿Por qué no ayudas y compartes alguno?</p>
+								</div>
+							</div>
 						{/each}
 					{:else}
 						<p class="text-zinc-500">Selecciona una asignatura para empezar</p>
