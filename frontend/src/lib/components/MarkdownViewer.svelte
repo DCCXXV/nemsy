@@ -33,7 +33,7 @@
 	{:else if error}
 		<div class="flex items-center text-red-400 text-sm">Error al cargar el archivo</div>
 	{:else}
-		<div class="prose prose-zinc max-w-none text-sm">
+		<div class="prose px-16 py-8 prose-zinc max-w-none text-sm">
 			{@html html}
 		</div>
 	{/if}

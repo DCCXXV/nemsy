@@ -41,12 +41,18 @@ type ResourceResponse struct {
 	Files       []FileResponse `json:"files"`
 	CreatedAt   string         `json:"createdAt"`
 	Owner       *Owner         `json:"owner,omitempty"`
+	Subject     *SubjectInfo   `json:"subject,omitempty"`
 }
 
 type Owner struct {
 	ID       int32  `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+}
+
+type SubjectInfo struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -289,22 +295,14 @@ func (h *Handler) ListByUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resources, err := h.app.Queries.ListResourcesByOwner(r.Context(), user.ID)
+	resources, err := h.app.Queries.ListResourcesByOwnerWithSubject(r.Context(), user.ID)
 	if err != nil {
 		log.Printf("Failed to list resources for user %s: %v", username, err)
 		http.Error(w, "database error", http.StatusInternalServerError)
 		return
 	}
 
-	type resourceItem struct {
-		ID          int32   `json:"id"`
-		Title       string  `json:"title"`
-		Description *string `json:"description,omitempty"`
-		FileCount   int     `json:"fileCount"`
-		CreatedAt   string  `json:"createdAt"`
-	}
-
-	resp := make([]resourceItem, 0, len(resources))
+	resp := make([]ResourceResponse, 0, len(resources))
 	for _, res := range resources {
 		files, err := h.app.Queries.ListFilesByResource(r.Context(), res.ID)
 		if err != nil {
@@ -312,16 +310,35 @@ func (h *Handler) ListByUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "database error", http.StatusInternalServerError)
 			return
 		}
-		item := resourceItem{
+
+		fileResponses := make([]FileResponse, 0, len(files))
+		for _, f := range files {
+			fileResponses = append(fileResponses, FileResponse{
+				ID:       f.ID,
+				FileName: f.FileName,
+				FileSize: f.FileSize,
+			})
+		}
+
+		rr := ResourceResponse{
 			ID:        res.ID,
 			Title:     res.Title,
-			FileCount: len(files),
+			Files:     fileResponses,
 			CreatedAt: res.CreatedAt.Time.Format(time.RFC3339),
+			Owner: &Owner{
+				ID:       res.OwnerID,
+				Username: res.OwnerUsername,
+				Email:    res.OwnerEmail,
+			},
+			Subject: &SubjectInfo{
+				ID:   res.SubjectID,
+				Name: res.SubjectName,
+			},
 		}
 		if res.Description.Valid {
-			item.Description = &res.Description.String
+			rr.Description = &res.Description.String
 		}
-		resp = append(resp, item)
+		resp = append(resp, rr)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

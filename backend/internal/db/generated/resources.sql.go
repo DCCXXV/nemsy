@@ -132,6 +132,60 @@ func (q *Queries) ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Re
 	return items, nil
 }
 
+const listResourcesByOwnerWithSubject = `-- name: ListResourcesByOwnerWithSubject :many
+SELECT
+    r.id, r.title, r.description, r.created_at,
+    u.id AS owner_id, u.username AS owner_username, u.email AS owner_email,
+    s.id AS subject_id, s.name AS subject_name
+FROM resources r
+JOIN users u ON r.owner_id = u.id
+JOIN subjects s ON r.subject_id = s.id
+WHERE r.owner_id = $1
+ORDER BY r.created_at DESC
+`
+
+type ListResourcesByOwnerWithSubjectRow struct {
+	ID            int32
+	Title         string
+	Description   pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	OwnerID       int32
+	OwnerUsername string
+	OwnerEmail    string
+	SubjectID     int32
+	SubjectName   string
+}
+
+func (q *Queries) ListResourcesByOwnerWithSubject(ctx context.Context, ownerID int32) ([]ListResourcesByOwnerWithSubjectRow, error) {
+	rows, err := q.db.Query(ctx, listResourcesByOwnerWithSubject, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListResourcesByOwnerWithSubjectRow
+	for rows.Next() {
+		var i ListResourcesByOwnerWithSubjectRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.CreatedAt,
+			&i.OwnerID,
+			&i.OwnerUsername,
+			&i.OwnerEmail,
+			&i.SubjectID,
+			&i.SubjectName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listResourcesBySubject = `-- name: ListResourcesBySubject :many
 SELECT id, owner_id, subject_id, title, description, created_at FROM resources
 WHERE subject_id = $1

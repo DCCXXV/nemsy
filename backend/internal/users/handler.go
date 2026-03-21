@@ -260,7 +260,7 @@ func (h *Handler) GetByUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.app.Queries.GetUserByUsername(r.Context(), username)
+	user, err := h.app.Queries.GetUserWithStudyByUsername(r.Context(), username)
 	if err != nil {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
@@ -274,8 +274,9 @@ func (h *Handler) GetByUsername(w http.ResponseWriter, r *http.Request) {
 	if user.Hd.Valid {
 		resp.Hd = &user.Hd.String
 	}
-	if user.StudyID.Valid {
-		resp.StudyID = &user.StudyID.Int32
+	if user.StudyIDFk.Valid {
+		resp.StudyID = &user.StudyIDFk.Int32
+		resp.StudyName = &user.StudyName.String
 	}
 
 	w.Header().Set("Content-Type", "application/json")

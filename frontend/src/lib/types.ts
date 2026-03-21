@@ -36,4 +36,8 @@ export interface Resource {
 		username: string;
 		email: string;
 	};
+	subject?: {
+		id: number;
+		name: string;
+	};
 }

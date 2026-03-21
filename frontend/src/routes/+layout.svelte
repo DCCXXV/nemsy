@@ -87,11 +87,12 @@
 
 			<div class="flex-none flex flex-row items-center gap-4">
 				{#if props.data.me}
-					<div
+					<a
+						href="/user/{props.data.me?.username}"
 						class="h-10 flex items-center px-4 py-2 bg-zinc-50 text-zinc-900 border-zinc-300 border rounded-none"
 					>
-						{props.data.me?.email?.split('@')[0]}
-					</div>
+						{props.data.me?.username}
+					</a>
 				{:else}
 					<a
 						href="/auth"

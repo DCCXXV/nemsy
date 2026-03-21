@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { PUBLIC_API_BASE_URL } from '$env/static/public';
-
 	import type { PageData } from './$types';
 	import { Tabs } from 'bits-ui';
 	import type { Subject, Resource } from '$lib/types';
@@ -9,52 +8,12 @@
 	import { onMount, untrack } from 'svelte';
 
 	import { Tooltip } from 'melt/components';
-	import { Dialog } from 'bits-ui';
 
-	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
-	/*
-	import ArrowFatUpIcon from 'phosphor-svelte/lib/ArrowFatUpIcon';
-	import ArrowFatDownIcon from 'phosphor-svelte/lib/ArrowFatDownIcon';
-	import ArchiveIcon from 'phosphor-svelte/lib/ArchiveIcon';
-	import RowsIcon from 'phosphor-svelte/lib/RowsIcon';
-	import SquareIcon from 'phosphor-svelte/lib/SquareIcon';
-	*/
 	import PushPinIcon from 'phosphor-svelte/lib/PushPinIcon';
-	import ImagesIcon from 'phosphor-svelte/lib/ImagesIcon';
 	import PencilRulerIcon from 'phosphor-svelte/lib/PencilRulerIcon';
 	import ArrowUpRightIcon from 'phosphor-svelte/lib/ArrowUpRightIcon';
-	import FilePdfIcon from 'phosphor-svelte/lib/FilePdfIcon';
-	import QuestionIcon from 'phosphor-svelte/lib/QuestionIcon';
-	import ClockClockwiseIcon from 'phosphor-svelte/lib/ClockClockwiseIcon';
-	import FolderIcon from 'phosphor-svelte/lib/FolderIcon';
-	import ImageIcon from 'phosphor-svelte/lib/ImageIcon';
-	import MarkdownLogoIcon from 'phosphor-svelte/lib/MarkdownLogoIcon';
 
-	import PdfThumbnail from '$lib/components/PdfThumbnail.svelte';
-	import MarkdownViewer from '$lib/components/MarkdownViewer.svelte';
-	import ResourceView from '$lib/components/ResourceView.svelte';
-	import UserAvatar from '$lib/components/UserAvatar.svelte';
-
-	import SmileyNervousIcon from 'phosphor-svelte/lib/SmileyNervousIcon';
-
-	function getFirstFileExt(resource: Resource): string {
-		if (!resource.files?.length) return '';
-		const name = resource.files[0].fileName;
-		const dot = name.lastIndexOf('.');
-		return dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
-	}
-
-	function isImage(ext: string): boolean {
-		return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-	}
-
-	function isPdf(ext: string): boolean {
-		return ext === 'pdf';
-	}
-
-	function isMarkdown(ext: string): boolean {
-		return ext === 'md' || ext === 'markdown';
-	}
+	import ResourceList from '$lib/components/ResourceList.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -143,7 +102,6 @@
 	);
 
 	let selectedTab = $state(untrack(() => tabIds[0]));
-	let compactMode = $state(false);
 
 	function selectSubject(id: string) {
 		localStorage.setItem('lastSubject', id);
@@ -154,17 +112,9 @@
 		localStorage.setItem('lastTab', id);
 	}
 
-	function selectViewMode(compact: boolean) {
-		compactMode = compact;
-		localStorage.setItem('compactMode', compact.toString());
-	}
-
 	onMount(() => {
 		const savedTab = localStorage.getItem('lastTab');
 		if (savedTab && tabIds.includes(savedTab)) selectedTab = savedTab;
-
-		const savedCompactMode = localStorage.getItem('compactMode');
-		if (savedCompactMode === 'true') compactMode = true;
 
 		if (!selectedSubjectID) {
 			const saved = localStorage.getItem('lastSubject');
@@ -294,23 +244,6 @@
 						</Tooltip>
 					{/if}
 				</div>
-				<div class="bg-zinc-100 border-b border-zinc-300 flex items-center py-1 justify-end">
-					<div class="text-zinc-500 bg-zinc-100 border-l border-zinc-300">
-						<button class="flex gap-1 items-center justify-center px-2">
-							<ClockClockwiseIcon class="size-6" />
-							<span class="w-20 text-left">Recientes</span>
-						</button>
-					</div>
-					<div class="text-zinc-500 bg-zinc-100 border-l hover:text-zinc-900 border-zinc-300">
-						<button
-							class="flex gap-1 items-center justify-center cursor-pointer px-2"
-							onclick={() => selectViewMode(!compactMode)}
-						>
-							<ImagesIcon class="size-6" />
-							<span class="w-23 text-left">{compactMode ? 'Compacto' : 'Desplegado'}</span>
-						</button>
-					</div>
-				</div>
 				<div
 					class="bg-yellow-100 border-b border-yellow-300 text-yellow-700 flex items-center px-2 pb-2 pt-4 justify-between"
 				>
@@ -325,163 +258,13 @@
 
 				<div>
 					{#if selectedSubject}
-						{#each resources as resource (resource.id)}
-							<Dialog.Root>
-								<Dialog.Trigger
-									class="border-b last:border-b-0 p-2 border-zinc-200 w-full text-left cursor-pointer"
-								>
-									{#if compactMode}
-										<div class=" flex gap-3">
-											{#if resource.files.length > 1}
-												<div
-													class="w-20 self-stretch rounded-none border border-yellow-400 bg-yellow-400 flex items-center justify-center"
-												>
-													<FolderIcon weight="fill" class="size-12 text-zinc-50" />
-												</div>
-											{:else if isPdf(getFirstFileExt(resource))}
-												<div
-													class="w-20 self-stretch rounded-none border border-red-400 bg-red-400 flex items-center justify-center"
-												>
-													<FilePdfIcon weight="fill" class="size-12 text-zinc-50" />
-												</div>
-											{:else if isImage(getFirstFileExt(resource))}
-												<div
-													class="w-20 self-stretch rounded-none border border-lime-400 bg-lime-400 flex items-center justify-center"
-												>
-													<ImageIcon weight="fill" class="size-12 text-zinc-50" />
-												</div>
-											{:else if isMarkdown(getFirstFileExt(resource))}
-												<div
-													class="w-20 self-stretch rounded-none border border-blue-400 bg-blue-400 flex items-center justify-center"
-												>
-													<MarkdownLogoIcon weight="fill" class="size-12 text-zinc-50" />
-												</div>
-											{:else}
-												<div
-													class="w-20 self-stretch rounded-none border border-violet-400 bg-violet-400 flex items-center justify-center"
-												>
-													<QuestionIcon weight="fill" class="size-12 text-zinc-50" />
-												</div>
-											{/if}
-											<div class="flex flex-col flex-1 justify-between py-1">
-												<div>
-													<h2 class="text-base">{resource.title}</h2>
-													<p class="text-sm text-zinc-500">
-														@{resource.owner?.username}
-													</p>
-												</div>
-												<div class="flex justify-end gap-2">
-													<!--
-												<button
-														class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-600 px-2 py-0.5 flex items-center cursor-pointer text-sm"
-														><ArchiveIcon class="size-4 mr-1" />Guardar</button
-												>-->
-													<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
-														<div
-															class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-2 py-0.5 flex items-center cursor-pointer text-sm rounded-none"
-														>
-															<DownloadSimpleIcon class="size-4 mr-1" />Descargar
-														</div></a
-													>
-												</div>
-											</div>
-										</div>
-									{:else}
-										<div class="border-b last:border-b-0 p-2 border-zinc-200 flex w-full gap-2">
-											<div class="flex flex-col gap-2 w-full">
-												<div class="flex items-center gap-2">
-													{#if resource.owner}
-														<UserAvatar username={resource.owner.username} />
-													{/if}
-													<div class="flex flex-col">
-														<h2 class="text-xl -mb-1">{resource.title}</h2>
-														<p class="text-md text-zinc-500">
-															@{resource.owner?.username}
-														</p>
-													</div>
-												</div>
-												<div class="rounded-none overflow-hidden">
-													{#if resource.files.length > 1}
-														<div
-															class="bg-yellow-200 border border-yellow-300 w-full h-36 justify-center flex items-center"
-														>
-															<FolderIcon weight="fill" class="size-24 text-yellow-500 mr-2" />
-														</div>
-													{:else if isPdf(getFirstFileExt(resource))}
-														<div class="border border-zinc-300">
-															<PdfThumbnail
-																url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-																	.files[0].id}/download"
-															/>
-														</div>
-													{:else if isImage(getFirstFileExt(resource))}
-														<img
-															class="border border-zinc-300"
-															src="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-																.files[0].id}/download"
-															alt="imagen del recurso"
-														/>
-													{:else if isMarkdown(getFirstFileExt(resource))}
-														<div
-															class="border border-zinc-300 w-full h-100 overflow-hidden pointer-events-none"
-														>
-															<MarkdownViewer
-																url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-																	.files[0].id}/download"
-															/>
-														</div>
-													{:else}
-														<div
-															class="border border-zinc-300 bg-zinc-100 w-full h-24 justify-center flex items-center"
-														>
-															<QuestionIcon class="size-12 text-zinc-500 mr-2" />
-															<p class="text-2xl text-zinc-500">Formato desconocido</p>
-														</div>
-													{/if}
-												</div>
-												<p class="text-zinc-700">{resource.description}</p>
-												<div class="flex justify-end mb-4 gap-2">
-													<!--
-											<button
-												class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-600 px-3 py-1 flex items-center cursor-pointer"
-												><ArchiveIcon class="size-5 mr-2" />Guardar</button
-											>-->
-													<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download">
-														<div
-															class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-1 flex items-center cursor-pointer rounded-none"
-														>
-															<DownloadSimpleIcon class="size-5 mr-2" />Descargar
-														</div></a
-													>
-												</div>
-											</div>
-										</div>
-									{/if}
-								</Dialog.Trigger>
-								<Dialog.Portal>
-									<Dialog.Overlay class="fixed inset-0 z-50 bg-black/30" />
-									<Dialog.Content
-										class="bg-zinc-50 border-zinc-300 outline-hidden fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-8rem)] h-[calc(100svh-4rem)] translate-x-[-50%] translate-y-[-50%] border overflow-hidden"
-									>
-										<ResourceView {resource} />
-									</Dialog.Content>
-								</Dialog.Portal>
-							</Dialog.Root>
-						{:else}
-							<div
-								class="flex flex-col items-center justify-center py-58 px-6 text-zinc-400 gap-3 border-b border-zinc-300"
-							>
-								<SmileyNervousIcon weight="thin" class="size-16 text-zinc-400" />
-								<p class="text-center text-zinc-500 text-lg">
-									Todavía no hay recursos para esta asignatura.
-								</p>
-								<div class="flex items-center gap-1">
-									<p>¿Por qué no ayudas y compartes alguno?</p>
-								</div>
-							</div>
-						{/each}
+						<ResourceList
+							{resources}
+							emptyMessage="Todavía no hay recursos para esta asignatura."
+							emptySubMessage="¿Por qué no ayudas y compartes alguno?"
+						/>
 					{:else}
-						<p class="text-zinc-500">Selecciona una asignatura para empezar</p>
+						<p class="text-zinc-500 p-2">Selecciona una asignatura para empezar</p>
 					{/if}
 					<div bind:this={sentinel}></div>
 					{#if loadingMore}

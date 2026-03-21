@@ -39,6 +39,17 @@ SELECT * FROM resources
 WHERE owner_id = $1
 ORDER BY created_at DESC;
 
+-- name: ListResourcesByOwnerWithSubject :many
+SELECT
+    r.id, r.title, r.description, r.created_at,
+    u.id AS owner_id, u.username AS owner_username, u.email AS owner_email,
+    s.id AS subject_id, s.name AS subject_name
+FROM resources r
+JOIN users u ON r.owner_id = u.id
+JOIN subjects s ON r.subject_id = s.id
+WHERE r.owner_id = $1
+ORDER BY r.created_at DESC;
+
 -- name: CreateResource :one
 INSERT INTO resources (
     owner_id, subject_id, title, description

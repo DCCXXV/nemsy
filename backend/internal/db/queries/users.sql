@@ -19,6 +19,15 @@ WHERE email = $1 LIMIT 1;
 SELECT * FROM users
 WHERE username = $1 LIMIT 1;
 
+-- name: GetUserWithStudyByUsername :one
+SELECT
+    u.*,
+    s.id AS study_id_fk,
+    s.name AS study_name
+FROM users u
+LEFT JOIN studies s ON u.study_id = s.id
+WHERE u.username = $1 LIMIT 1;
+
 -- name: GetUserWithStudyByEmail :one
 SELECT
     u.*,

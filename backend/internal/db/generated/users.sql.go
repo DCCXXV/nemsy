@@ -186,6 +186,45 @@ func (q *Queries) GetUserWithStudyByEmail(ctx context.Context, email string) (Ge
 	return i, err
 }
 
+const getUserWithStudyByUsername = `-- name: GetUserWithStudyByUsername :one
+SELECT
+    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username,
+    s.id AS study_id_fk,
+    s.name AS study_name
+FROM users u
+LEFT JOIN studies s ON u.study_id = s.id
+WHERE u.username = $1 LIMIT 1
+`
+
+type GetUserWithStudyByUsernameRow struct {
+	ID        int32
+	StudyID   pgtype.Int4
+	GoogleSub string
+	Email     string
+	Hd        pgtype.Text
+	CreatedAt pgtype.Timestamp
+	Username  string
+	StudyIDFk pgtype.Int4
+	StudyName pgtype.Text
+}
+
+func (q *Queries) GetUserWithStudyByUsername(ctx context.Context, username string) (GetUserWithStudyByUsernameRow, error) {
+	row := q.db.QueryRow(ctx, getUserWithStudyByUsername, username)
+	var i GetUserWithStudyByUsernameRow
+	err := row.Scan(
+		&i.ID,
+		&i.StudyID,
+		&i.GoogleSub,
+		&i.Email,
+		&i.Hd,
+		&i.CreatedAt,
+		&i.Username,
+		&i.StudyIDFk,
+		&i.StudyName,
+	)
+	return i, err
+}
+
 const updateUserStudy = `-- name: UpdateUserStudy :one
 UPDATE users
 SET study_id = $2
