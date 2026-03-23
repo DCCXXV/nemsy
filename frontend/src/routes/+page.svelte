@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { PUBLIC_API_BASE_URL } from '$env/static/public';
 	import type { PageData } from './$types';
 	import { Tabs } from 'bits-ui';
-	import type { Subject, Resource } from '$lib/types';
+	import type { Subject } from '$lib/types';
 	import { page } from '$app/state';
 	import { goto, invalidate } from '$app/navigation';
-	import { onMount, untrack } from 'svelte';
+	import { onMount } from 'svelte';
 
 	import { Tooltip } from 'melt/components';
 
@@ -16,41 +15,6 @@
 	import ResourceList from '$lib/components/ResourceList.svelte';
 
 	let { data }: { data: PageData } = $props();
-
-	const PAGE_SIZE = 10;
-	let extraResources = $state<Resource[]>([]);
-	let offset = $state(untrack(() => data.resources.length));
-	let hasMore = $state(untrack(() => data.resources.length === PAGE_SIZE));
-	let loadingMore = $state(false);
-	let sentinel = $state<HTMLDivElement | undefined>(undefined);
-
-	const resources = $derived([...data.resources, ...extraResources]);
-
-	$effect(() => {
-		void data.resources;
-		extraResources = [];
-		offset = data.resources.length;
-		hasMore = data.resources.length === PAGE_SIZE;
-	});
-
-	async function loadMore() {
-		if (loadingMore || !hasMore || !selectedSubjectID) return;
-		loadingMore = true;
-		try {
-			const res = await fetch(
-				`${PUBLIC_API_BASE_URL}/api/subjects/${selectedSubjectID}/resources?limit=${PAGE_SIZE}&offset=${offset}`,
-				{ credentials: 'include' }
-			);
-			if (res.ok) {
-				const next: Resource[] = await res.json();
-				extraResources = [...extraResources, ...next];
-				offset += next.length;
-				hasMore = next.length === PAGE_SIZE;
-			}
-		} finally {
-			loadingMore = false;
-		}
-	}
 
 	let localPinOverrides = $state(new Map<number, boolean>());
 
@@ -101,7 +65,7 @@
 		data.subjects.find((s) => s.id.toString() === selectedSubjectID)
 	);
 
-	let selectedTab = $state(untrack(() => tabIds[0]));
+	let selectedTab = $state(tabIds[0]);
 
 	function selectSubject(id: string) {
 		localStorage.setItem('lastSubject', id);
@@ -120,15 +84,6 @@
 			const saved = localStorage.getItem('lastSubject');
 			if (saved) goto(`?subject=${saved}`, { replaceState: true });
 		}
-
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries[0].isIntersecting) loadMore();
-			},
-			{ rootMargin: '300px' }
-		);
-		if (sentinel) observer.observe(sentinel);
-		return () => observer.disconnect();
 	});
 </script>
 
@@ -146,6 +101,11 @@
 				</div>
 				<div class="p-2 flex gap-4 items-center border-b border-zinc-300">
 					<p class="text-lg">Grado en Ingeniería de Software</p>
+				</div>
+				<div
+					class="px-2 py-1 flex gap-4 items-center text-zinc-700 border-b border-zinc-300 bg-zinc-100"
+				>
+					<p class="text-lg">Asignaturas</p>
 				</div>
 				<div class="p-2 flex gap-4 items-center">
 					<Tabs.Root value={selectedTab} onValueChange={selectTab} class="w-full">
@@ -207,7 +167,7 @@
 				</div>
 			</div>
 			<div
-				class="bg-zinc-50 border border-zinc-300 rounded-none w-1/2 mx-4 {resources.length
+				class="bg-zinc-50 border border-zinc-300 rounded-none w-1/2 mx-4 {data.resources.length
 					? ''
 					: 'border-b-0'}"
 			>
@@ -259,16 +219,12 @@
 				<div>
 					{#if selectedSubject}
 						<ResourceList
-							{resources}
+							resources={data.resources}
 							emptyMessage="Todavía no hay recursos para esta asignatura."
 							emptySubMessage="¿Por qué no ayudas y compartes alguno?"
 						/>
 					{:else}
 						<p class="text-zinc-500 p-2">Selecciona una asignatura para empezar</p>
-					{/if}
-					<div bind:this={sentinel}></div>
-					{#if loadingMore}
-						<div class="py-4 text-center text-zinc-400 animate-pulse text-sm">Cargando más...</div>
 					{/if}
 				</div>
 			</div>
