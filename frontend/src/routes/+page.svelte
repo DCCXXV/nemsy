@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { PUBLIC_API_BASE_URL } from '$env/static/public';
+
 	import type { PageData } from './$types';
 	import { Tabs } from 'bits-ui';
 	import type { Subject } from '$lib/types';
@@ -10,8 +12,6 @@
 
 	import PushPinIcon from 'phosphor-svelte/lib/PushPinIcon';
 	import PencilRulerIcon from 'phosphor-svelte/lib/PencilRulerIcon';
-	import ArrowUpRightIcon from 'phosphor-svelte/lib/ArrowUpRightIcon';
-
 	import ResourceList from '$lib/components/ResourceList.svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -89,8 +89,12 @@
 
 {#if data.me}
 	<div class="relative bg-zinc-100 min-h-screen">
-		<div class="relative z-10 flex flex-col md:flex-row items-stretch md:items-start md:justify-center pt-4 pb-6 gap-4 md:gap-0 px-4 md:px-0">
-			<div class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/4 md:ml-4 md:sticky md:top-4">
+		<div
+			class="relative z-10 flex flex-col md:flex-row items-stretch md:items-start md:justify-center pt-4 pb-6 gap-4 md:gap-0 px-4 md:px-0"
+		>
+			<div
+				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/4 md:ml-4 md:sticky md:top-4"
+			>
 				<div class="p-2 flex gap-4 items-center border-b border-zinc-300">
 					<img
 						src="https://www.google.com/s2/favicons?domain={data.me?.hd}&sz=64"
@@ -167,7 +171,8 @@
 				</div>
 			</div>
 			<div
-				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/2 md:mx-4 {data.resources.length
+				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/2 md:mx-4 {data
+					.resources.length
 					? ''
 					: 'border-b-0'}"
 			>
@@ -204,18 +209,6 @@
 						</Tooltip>
 					{/if}
 				</div>
-				<div
-					class="bg-yellow-100 border-b border-yellow-300 text-yellow-700 flex items-center px-2 pb-2 pt-4 justify-between"
-				>
-					<p>¿Quieres compartir un recurso para esta asignatura?</p>
-					<a
-						href="/create{selectedSubjectID ? `?subject=${selectedSubjectID}` : ''}"
-						class="flex items-center bg-zinc-50 text-sm text-zinc-600 p-1 border border-yellow-300 cursor-pointer hover:underline rounded-none"
-					>
-						Compartir <ArrowUpRightIcon class="size-4 ml-2" />
-					</a>
-				</div>
-
 				<div>
 					{#if selectedSubject}
 						<ResourceList

@@ -23,12 +23,12 @@
 	let { data } = $props();
 
 	let title = $state('');
-	let selectedSubject = $state<string | undefined>(
-		page.url.searchParams.get('subject') ?? undefined
-	);
+	const initialSubjectId =
+		page.url.searchParams.get('subject') ??
+		(typeof localStorage !== 'undefined' ? localStorage.getItem('lastSubject') : null);
+	let selectedSubject = $state<string | undefined>(initialSubjectId ?? undefined);
 	let description = $state('');
 	let selectedFiles = $state<Set<File>>(new Set());
-	const initialSubjectId = page.url.searchParams.get('subject');
 	let searchValue = $state(
 		untrack(() =>
 			initialSubjectId
