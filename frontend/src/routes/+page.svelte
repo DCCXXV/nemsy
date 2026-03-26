@@ -89,8 +89,8 @@
 
 {#if data.me}
 	<div class="relative bg-zinc-100 min-h-screen">
-		<div class="relative z-10 flex items-start justify-center pt-4 pb-6">
-			<div class="bg-zinc-50 border border-zinc-300 rounded-none w-1/4 ml-4 sticky top-4">
+		<div class="relative z-10 flex flex-col md:flex-row items-stretch md:items-start md:justify-center pt-4 pb-6 gap-4 md:gap-0 px-4 md:px-0">
+			<div class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/4 md:ml-4 md:sticky md:top-4">
 				<div class="p-2 flex gap-4 items-center border-b border-zinc-300">
 					<img
 						src="https://www.google.com/s2/favicons?domain={data.me?.hd}&sz=64"
@@ -167,7 +167,7 @@
 				</div>
 			</div>
 			<div
-				class="bg-zinc-50 border border-zinc-300 rounded-none w-1/2 mx-4 {data.resources.length
+				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/2 md:mx-4 {data.resources.length
 					? ''
 					: 'border-b-0'}"
 			>
@@ -229,7 +229,7 @@
 				</div>
 			</div>
 			<div
-				class="text-zinc-400 bg-zinc-50 border border-zinc-300 rounded-none w-1/4 mr-4 min-h-136 sticky top-4 flex flex-col items-center"
+				class="hidden md:flex text-zinc-400 bg-zinc-50 border border-zinc-300 rounded-none w-1/4 mr-4 min-h-136 sticky top-4 flex-col items-center"
 			>
 				<div class="m-auto aspect-square text-center p-2">
 					<PencilRulerIcon weight="thin" class="size-14 mx-auto" />

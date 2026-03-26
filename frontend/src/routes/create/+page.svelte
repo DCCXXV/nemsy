@@ -153,12 +153,12 @@
 </script>
 
 <div
-	class="bg-zinc-100 flex items-start justify-center pt-4 pb-6 min-h-screen relative overflow-hidden"
+	class="bg-zinc-100 flex items-start justify-center pt-4 pb-6 min-h-screen relative overflow-hidden px-4 md:px-0"
 >
 	<img src="/img/tree.svg" alt="" class="absolute -bottom-46 right-12 w-250 pointer-events-none" />
 
-	<div class="relative z-10 flex items-start gap-4 mx-4">
-		<div class="bg-zinc-50 border border-zinc-300 w-[43vw] shrink-0 p-4">
+	<div class="relative z-10 flex flex-col md:flex-row items-start gap-4 w-full md:w-auto">
+		<div class="bg-zinc-50 border border-zinc-300 w-full md:w-[43vw] shrink-0 p-4">
 			{#if error}
 				<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-none mb-4">
 					{error}
@@ -313,7 +313,7 @@
 
 		{#if filesArray.length > 0}
 			<div
-				class="bg-zinc-50 border border-zinc-300 w-[43vw] shrink-0 p-4 flex flex-col gap-3 h-[80vh]"
+				class="bg-zinc-50 border border-zinc-300 w-full md:w-[43vw] shrink-0 p-4 flex flex-col gap-3 h-[80vh]"
 			>
 				<div class="flex flex-wrap gap-2">
 					{#each filesArray as file (file.name + file.size)}

@@ -278,7 +278,7 @@
 			<Dialog.Portal>
 				<Dialog.Overlay class="fixed inset-0 z-50 bg-black/30" />
 				<Dialog.Content
-					class="bg-zinc-50 border-zinc-300 outline-hidden fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-8rem)] h-[calc(100svh-4rem)] translate-x-[-50%] translate-y-[-50%] border overflow-hidden"
+					class="bg-zinc-50 border-zinc-300 outline-hidden fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-1rem)] md:max-w-[calc(100%-8rem)] h-[calc(100svh-1rem)] md:h-[calc(100svh-4rem)] translate-x-[-50%] translate-y-[-50%] border overflow-hidden"
 				>
 					<ResourceView {resource} />
 				</Dialog.Content>

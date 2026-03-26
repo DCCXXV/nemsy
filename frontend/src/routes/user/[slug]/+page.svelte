@@ -12,8 +12,8 @@
 	const { user, resources } = data;
 </script>
 
-<div class="bg-zinc-100 flex justify-center pt-4 pb-6 min-h-screen relative overflow-hidden">
-	<div class="relative z-10 w-full max-w-4xl mx-4">
+<div class="bg-zinc-100 flex justify-center pt-4 pb-6 min-h-screen relative overflow-hidden px-4 md:px-0">
+	<div class="relative z-10 w-full max-w-4xl">
 		{#if user}
 			<div class="bg-zinc-50 border border-zinc-300">
 				<div class="p-4 border-b border-zinc-300 flex items-center gap-4">

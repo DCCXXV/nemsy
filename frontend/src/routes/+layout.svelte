@@ -1,20 +1,13 @@
 <script lang="ts">
 	import '../app.css';
 	import type { LayoutData } from './$types';
-	import { clickOutside } from '$lib/actions/clickOutside';
 	import { page } from '$app/state';
 
-	import ListIcon from 'phosphor-svelte/lib/ListIcon';
 	import HouseIcon from 'phosphor-svelte/lib/HouseIcon';
 	import ShapesIcon from 'phosphor-svelte/lib/ShapesIcon';
+	import UserIcon from 'phosphor-svelte/lib/UserIcon';
 
 	let props = $props<{ data: LayoutData; children: () => unknown }>();
-
-	let isMenuOpen = $state(false);
-
-	function closeMenu() {
-		isMenuOpen = false;
-	}
 
 	let currentPath = $derived(page.url.pathname);
 </script>
@@ -22,38 +15,17 @@
 {#if currentPath.includes('/auth')}
 	{@render props.children?.()}
 {:else}
-	<div class="min-h-screen flex flex-col bg-zinc-100 transition-all">
-		<div class="bg-zinc-100 bg-opacity-70 z-50 flex items-center justify-between px-4 py-2">
-			<div class="flex items-center">
-				<div class="relative" use:clickOutside onoutclick={closeMenu}>
-					<button
-						aria-label="menú-móvil"
-						class="md:hidden h-10 px-2 py-2 mr-2 rounded-none bg-zinc-50 border border-zinc-300 transition-colors inline-flex items-center cursor-pointer hover:bg-zinc-200"
-						onclick={() => (isMenuOpen = !isMenuOpen)}
-					>
-						<ListIcon />
-					</button>
-					{#if isMenuOpen}
-						<ul
-							class="absolute bg-zinc-100 rounded-none z-10 mt-3 w-52 p-2 list-none border-zinc-300 border transition-opacity"
-						>
-							<li><a class="block px-4 py-2 hover:bg-zinc-200 rounded-none" href="/">Inicio</a></li>
-							<li>
-								<a class="block px-4 py-2 hover:bg-zinc-200 rounded-none" href="/create">Crear</a>
-							</li>
-						</ul>
-					{/if}
-				</div>
+	<div class="min-h-screen flex flex-col bg-zinc-100 transition-all pb-16 md:pb-0">
+		<div class="bg-zinc-100/70 backdrop-blur-lg z-50 flex items-center justify-between px-4 py-2">
+			<a
+				href="/"
+				class="h-10 text-2xl text-zinc-700 px-4 py-2 transition-colors inline-flex items-center cursor-pointer"
+			>
+				<img src="/favicon.svg" alt="Logo" class="size-6 mr-3" />
+				nemsy
+			</a>
 
-				<a
-					href="/"
-					class="h-10 text-2xl text-zinc-700 px-4 py-2 transition-colors inline-flex items-center cursor-pointer"
-				>
-					<img src="/favicon.svg" alt="Logo" class="size-6 mr-3" />
-					nemsy
-				</a>
-			</div>
-
+			<!-- Desktop center nav -->
 			<div class="hidden md:flex flex-1 justify-center">
 				<ul class="flex list-none bg-zinc-50 rounded-none">
 					<li>
@@ -66,13 +38,6 @@
 							><HouseIcon class="size-5 mr-2" />Inicio
 						</a>
 					</li>
-					<!--
-					<li>
-						<a
-							class="cursor-not-allowed h-10 flex items-center px-6 py-2 hover:bg-zinc-200 rounded-none transition-colors"
-							href="#">Buscar</a
-						>
-					</li>-->
 					<li>
 						<a
 							class="h-10 flex items-center px-6 py-2 transition-colors
@@ -85,7 +50,7 @@
 				</ul>
 			</div>
 
-			<div class="flex-none flex flex-row items-center gap-4">
+			<div class="hidden md:flex flex-none flex-row items-center gap-4">
 				{#if props.data.me}
 					<a
 						href="/user/{props.data.me?.username}"
@@ -121,6 +86,47 @@
 
 		{@render props.children?.()}
 	</div>
+
+	<nav
+		class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-50/70 border-t border-zinc-300 backdrop-blur-lg flex"
+	>
+		<a
+			href="/"
+			class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors
+			{currentPath === '/' ? 'text-violet-700 bg-violet-50' : 'text-zinc-500 hover:text-zinc-900'}"
+		>
+			<HouseIcon class="size-6" />
+			Inicio
+		</a>
+		<a
+			href="/create"
+			class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors
+			{currentPath === '/create' ? 'text-violet-700 bg-violet-50' : 'text-zinc-500 hover:text-zinc-900'}"
+		>
+			<ShapesIcon class="size-6" />
+			Compartir
+		</a>
+		{#if props.data.me}
+			<a
+				href="/user/{props.data.me?.username}"
+				class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors
+				{currentPath.startsWith('/user')
+					? 'text-violet-700 bg-violet-50'
+					: 'text-zinc-500 hover:text-zinc-900'}"
+			>
+				<UserIcon class="size-6" />
+				{props.data.me.username}
+			</a>
+		{:else}
+			<a
+				href="/auth"
+				class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors text-zinc-500 hover:text-zinc-900"
+			>
+				<UserIcon class="size-6" />
+				Entrar
+			</a>
+		{/if}
+	</nav>
 
 	<footer class="bg-zinc-200 text-zinc-700 p-10 flex flex-col md:flex-row justify-between gap-8">
 		<aside class="flex flex-col md:flex-row items-start md:items-center gap-4 shrink-0">
