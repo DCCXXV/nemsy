@@ -220,6 +220,7 @@
 					{#if selectedSubject}
 						<ResourceList
 							resources={data.resources}
+							currentUserId={data.me?.id}
 							emptyMessage="Todavía no hay recursos para esta asignatura."
 							emptySubMessage="¿Por qué no ayudas y compartes alguno?"
 						/>

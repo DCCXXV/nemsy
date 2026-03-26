@@ -60,3 +60,6 @@ RETURNING *;
 
 -- name: IncrementDownloadCount :exec
 UPDATE resources SET download_count = download_count + 1 WHERE id = $1;
+
+-- name: DeleteResource :exec
+DELETE FROM resources WHERE id = $1 AND owner_id = $2;

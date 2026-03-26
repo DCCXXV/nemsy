@@ -20,21 +20,26 @@
 	import PdfThumbnail from '$lib/components/PdfThumbnail.svelte';
 	import MarkdownViewer from '$lib/components/MarkdownViewer.svelte';
 	import ResourceView from '$lib/components/ResourceView.svelte';
+	import ResourceMenu from '$lib/components/ResourceMenu.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 
 	let {
 		resources,
+		currentUserId,
 		compactMode: initialCompactMode = false,
 		emptyMessage = 'Todavía no hay recursos aquí.',
 		emptySubMessage = '',
 		showSubject = false
 	}: {
 		resources: Resource[];
+		currentUserId?: number;
 		compactMode?: boolean;
 		emptyMessage?: string;
 		emptySubMessage?: string;
 		showSubject?: boolean;
 	} = $props();
+
+	let deletedIds = $state(new Set<number>());
 
 	let compactMode = $state(initialCompactMode);
 	let query = $state('');
@@ -50,10 +55,11 @@
 	}
 
 	const filteredResources = $derived.by(() => {
+		const alive = resources.filter((r) => !deletedIds.has(r.id));
 		const filtered =
 			query.trim() === ''
-				? resources
-				: resources.filter(
+				? alive
+				: alive.filter(
 						(r) =>
 							r.title.toLowerCase().includes(query.toLowerCase()) ||
 							r.description?.toLowerCase().includes(query.toLowerCase())
@@ -199,15 +205,22 @@
 							</div>
 						{/if}
 						<div class="flex flex-col flex-1 justify-between py-1">
-							<div>
-								<h2 class="text-base">{resource.title}</h2>
-								<a
-									href="/user/{resource.owner?.username}"
-									class="text-sm text-zinc-500 hover:text-zinc-400"
-									onclick={(e) => e.stopPropagation()}
-								>
-									@{resource.owner?.username}
-								</a>
+							<div class="flex items-start justify-between">
+								<div>
+									<h2 class="text-base">{resource.title}</h2>
+									<a
+										href="/user/{resource.owner?.username}"
+										class="text-sm text-zinc-500 hover:text-zinc-400"
+										onclick={(e) => e.stopPropagation()}
+									>
+										@{resource.owner?.username}
+									</a>
+								</div>
+								<ResourceMenu
+									resourceId={resource.id}
+									isOwner={resource.owner?.id === currentUserId}
+									ondelete={() => deletedIds.add(resource.id)}
+								/>
 							</div>
 							<div class="flex justify-end gap-2">
 								<a
@@ -229,87 +242,94 @@
 						</div>
 					</div>
 				{:else}
-					<div class="flex w-full gap-2">
-						<div class="flex flex-col gap-2 w-full">
-							{#if showSubject && resource.subject}
-								<p class="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-									{resource.subject.name}
-								</p>
-							{/if}
-							<div class="flex items-center gap-2">
-								{#if resource.owner}
-									<UserAvatar username={resource.owner.username} />
+					<div class="flex flex-col gap-2 w-full">
+						<div class="flex items-start justify-between">
+							<div class="flex flex-col gap-2">
+								{#if showSubject && resource.subject}
+									<p class="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+										{resource.subject.name}
+									</p>
 								{/if}
-								<div class="flex flex-col">
-									<h2 class="text-xl -mb-1">{resource.title}</h2>
-									<a
-										href="/user/{resource.owner?.username}"
-										class="text-md text-zinc-500 hover:text-zinc-400"
-										onclick={(e) => e.stopPropagation()}
-									>
-										@{resource.owner?.username}
-									</a>
-								</div>
-							</div>
-							{#if resource.files?.length}
-								<div class="rounded-none overflow-hidden">
-									{#if resource.files.length > 1}
-										<div
-											class="bg-yellow-200 border border-yellow-300 w-full h-36 justify-center flex items-center"
-										>
-											<FolderIcon weight="fill" class="size-24 text-yellow-500 mr-2" />
-										</div>
-									{:else if isPdf(getFirstFileExt(resource))}
-										<div class="border border-zinc-300">
-											<PdfThumbnail
-												url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-													.files[0].id}/download"
-											/>
-										</div>
-									{:else if isImage(getFirstFileExt(resource))}
-										<img
-											class="border border-zinc-300"
-											src="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-												.files[0].id}/download"
-											alt="imagen del recurso"
-										/>
-									{:else if isMarkdown(getFirstFileExt(resource))}
-										<div
-											class="border border-zinc-300 w-full h-100 overflow-hidden pointer-events-none"
-										>
-											<MarkdownViewer
-												url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
-													.files[0].id}/download"
-											/>
-										</div>
-									{:else}
-										<div
-											class="border border-zinc-300 bg-zinc-100 w-full h-24 justify-center flex items-center"
-										>
-											<QuestionIcon class="size-12 text-zinc-500 mr-2" />
-											<p class="text-2xl text-zinc-500">Formato desconocido</p>
-										</div>
+								<div class="flex items-center gap-2">
+									{#if resource.owner}
+										<UserAvatar username={resource.owner.username} />
 									{/if}
+									<div class="flex flex-col">
+										<h2 class="text-xl -mb-1">{resource.title}</h2>
+										<a
+											href="/user/{resource.owner?.username}"
+											class="text-md text-zinc-500 hover:text-zinc-400"
+											onclick={(e) => e.stopPropagation()}
+										>
+											@{resource.owner?.username}
+										</a>
+									</div>
 								</div>
-							{/if}
-							<p class="text-zinc-700">{resource.description}</p>
-							<div class="flex justify-end mb-4 gap-2">
-								<a
-									href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download"
-									class="flex items-center border border-blue-300 rounded-none cursor-pointer"
-									onclick={(e) => {
-										e.stopPropagation();
-										handleDownload(resource);
-									}}
-								>
-									<span class="bg-zinc-50 text-blue-900 px-2 py-1 flex items-center gap-1">
-										{getDownloadCount(resource)}<DownloadSimpleIcon class="size-4" />
-									</span>
-									<span class="bg-blue-200 hover:bg-blue-100 text-blue-900 px-3 py-1">
-										Descargar
-									</span>
-								</a>
 							</div>
+							<ResourceMenu
+								resourceId={resource.id}
+								isOwner={resource.owner?.id === currentUserId}
+								ondelete={() => deletedIds.add(resource.id)}
+							/>
+						</div>
+						{#if resource.files?.length}
+							<div class="rounded-none overflow-hidden">
+								{#if resource.files.length > 1}
+									<div
+										class="bg-yellow-200 border border-yellow-300 w-full h-36 justify-center flex items-center"
+									>
+										<FolderIcon weight="fill" class="size-24 text-yellow-500 mr-2" />
+									</div>
+								{:else if isPdf(getFirstFileExt(resource))}
+									<div class="border border-zinc-300">
+										<PdfThumbnail
+											url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
+												.files[0].id}/download"
+										/>
+									</div>
+								{:else if isImage(getFirstFileExt(resource))}
+									<img
+										class="border border-zinc-300"
+										src="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
+											.files[0].id}/download"
+										alt="imagen del recurso"
+									/>
+								{:else if isMarkdown(getFirstFileExt(resource))}
+									<div
+										class="border border-zinc-300 w-full h-100 overflow-hidden pointer-events-none"
+									>
+										<MarkdownViewer
+											url="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/files/{resource
+												.files[0].id}/download"
+										/>
+									</div>
+								{:else}
+									<div
+										class="border border-zinc-300 bg-zinc-100 w-full h-24 justify-center flex items-center"
+									>
+										<QuestionIcon class="size-12 text-zinc-500 mr-2" />
+										<p class="text-2xl text-zinc-500">Formato desconocido</p>
+									</div>
+								{/if}
+							</div>
+						{/if}
+						<p class="text-zinc-700">{resource.description}</p>
+						<div class="flex justify-end mb-4 gap-2">
+							<a
+								href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download"
+								class="flex items-center border border-blue-300 rounded-none cursor-pointer"
+								onclick={(e) => {
+									e.stopPropagation();
+									handleDownload(resource);
+								}}
+							>
+								<span class="bg-zinc-50 text-blue-900 px-2 py-1 flex items-center gap-1">
+									{getDownloadCount(resource)}<DownloadSimpleIcon class="size-4" />
+								</span>
+								<span class="bg-blue-200 hover:bg-blue-100 text-blue-900 px-3 py-1">
+									Descargar
+								</span>
+							</a>
 						</div>
 					</div>
 				{/if}
@@ -319,7 +339,12 @@
 				<Dialog.Content
 					class="bg-zinc-50 border-zinc-300 outline-hidden fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-1rem)] md:max-w-[calc(100%-8rem)] h-[calc(100svh-1rem)] md:h-[calc(100svh-4rem)] translate-x-[-50%] translate-y-[-50%] border overflow-hidden"
 				>
-					<ResourceView {resource} ondownload={() => handleDownload(resource)} />
+					<ResourceView
+								{resource}
+								{currentUserId}
+								ondownload={() => handleDownload(resource)}
+								ondelete={() => deletedIds.add(resource.id)}
+							/>
 				</Dialog.Content>
 			</Dialog.Portal>
 		</Dialog.Root>

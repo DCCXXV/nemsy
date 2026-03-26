@@ -15,6 +15,7 @@ type Querier interface {
 	CreateResourceFile(ctx context.Context, arg CreateResourceFileParams) (ResourceFile, error)
 	CreateSubject(ctx context.Context, arg CreateSubjectParams) (Subject, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteResource(ctx context.Context, arg DeleteResourceParams) error
 	DeleteResourceFile(ctx context.Context, id int32) error
 	GetResource(ctx context.Context, id int32) (Resource, error)
 	GetResourceFile(ctx context.Context, id int32) (ResourceFile, error)
@@ -34,6 +35,7 @@ type Querier interface {
 	ListResourcesBySubject(ctx context.Context, subjectID int32) ([]Resource, error)
 	ListResourcesBySubjectWithOwner(ctx context.Context, subjectID int32) ([]ListResourcesBySubjectWithOwnerRow, error)
 	ListResourcesBySubjectWithOwnerPaginated(ctx context.Context, arg ListResourcesBySubjectWithOwnerPaginatedParams) ([]ListResourcesBySubjectWithOwnerPaginatedRow, error)
+	ListS3KeysByResource(ctx context.Context, resourceID int32) ([]string, error)
 	ListStudies(ctx context.Context) ([]Study, error)
 	ListSubjects(ctx context.Context) ([]Subject, error)
 	ListSubjectsByStudy(ctx context.Context, studyID pgtype.Int4) ([]Subject, error)

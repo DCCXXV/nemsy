@@ -102,3 +102,28 @@ func (q *Queries) ListFilesByResource(ctx context.Context, resourceID int32) ([]
 	}
 	return items, nil
 }
+
+const listS3KeysByResource = `-- name: ListS3KeysByResource :many
+SELECT s3_key FROM resource_files
+WHERE resource_id = $1
+`
+
+func (q *Queries) ListS3KeysByResource(ctx context.Context, resourceID int32) ([]string, error) {
+	rows, err := q.db.Query(ctx, listS3KeysByResource, resourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var s3_key string
+		if err := rows.Scan(&s3_key); err != nil {
+			return nil, err
+		}
+		items = append(items, s3_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

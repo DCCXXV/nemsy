@@ -9,8 +9,19 @@
 	import ImageViewer from '$lib/components/ImageViewer.svelte';
 	import MarkdownViewer from '$lib/components/MarkdownViewer.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
+	import ResourceMenu from '$lib/components/ResourceMenu.svelte';
 
-	let { resource, ondownload }: { resource: Resource; ondownload?: () => void } = $props();
+	let {
+		resource,
+		currentUserId,
+		ondownload,
+		ondelete
+	}: {
+		resource: Resource;
+		currentUserId?: number;
+		ondownload?: () => void;
+		ondelete?: () => void;
+	} = $props();
 
 	let selectedFileIndex = $state(0);
 	let localDownloads = $state(0);
@@ -37,12 +48,19 @@
 	<div
 		class="md:order-2 w-full md:w-72 shrink-0 relative flex flex-col overflow-y-auto p-2 gap-4 bg-zinc-50 border-b md:border-b-0 md:border-l border-zinc-300"
 	>
-		<Dialog.Close
-			class="absolute top-2 right-2 p-1.5 text-red-600 bg-red-100 hover:text-red-700 hover:bg-red-200 cursor-pointer"
-		>
-			<XIcon class="size-4" />
-		</Dialog.Close>
-		<div class="flex items-center gap-2 min-w-0 pr-8">
+		<div class="absolute top-2 right-2 flex items-center gap-2">
+			<ResourceMenu
+				resourceId={resource.id}
+				isOwner={resource.owner?.id === currentUserId}
+				ondelete={ondelete}
+			/>
+			<Dialog.Close
+				class="p-1.5 text-red-600 bg-red-100 hover:text-red-700 hover:bg-red-200 cursor-pointer"
+			>
+				<XIcon class="size-4" />
+			</Dialog.Close>
+		</div>
+		<div class="flex items-center gap-2 min-w-0 pr-16">
 			{#if resource.owner}
 				<UserAvatar username={resource.owner.username} />
 			{/if}

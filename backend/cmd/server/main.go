@@ -105,6 +105,7 @@ func main() {
 
 		protected.Post("/api/resources", resourcesHandler.Create)
 		protected.Get("/api/resources/{id}", resourcesHandler.Get)
+		protected.Delete("/api/resources/{id}", resourcesHandler.Delete)
 		protected.Get("/api/resources/{id}/download", resourcesHandler.Download)
 		protected.Get("/api/resources/{id}/files/{fileId}/download", resourcesHandler.DownloadFile)
 		protected.Get("/api/subjects/{id}/resources", resourcesHandler.ListBySubject)

@@ -47,6 +47,20 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 	return i, err
 }
 
+const deleteResource = `-- name: DeleteResource :exec
+DELETE FROM resources WHERE id = $1 AND owner_id = $2
+`
+
+type DeleteResourceParams struct {
+	ID      int32
+	OwnerID int32
+}
+
+func (q *Queries) DeleteResource(ctx context.Context, arg DeleteResourceParams) error {
+	_, err := q.db.Exec(ctx, deleteResource, arg.ID, arg.OwnerID)
+	return err
+}
+
 const getResource = `-- name: GetResource :one
 SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE id = $1 LIMIT 1

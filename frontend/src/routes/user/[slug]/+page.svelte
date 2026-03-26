@@ -43,6 +43,7 @@
 
 				<ResourceList
 					{resources}
+					currentUserId={data.me?.id}
 					showSubject
 					emptyMessage="Este usuario todavía no ha compartido recursos."
 				/>

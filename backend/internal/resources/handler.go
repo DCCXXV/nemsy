@@ -463,6 +463,46 @@ func (h *Handler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, obj)
 }
 
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(auth.CtxUserID).(int32)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	s3Keys, err := h.app.Queries.ListS3KeysByResource(r.Context(), int32(id))
+	if err != nil {
+		log.Printf("Failed to list S3 keys for resource %d: %v", id, err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	err = h.app.Queries.DeleteResource(r.Context(), db.DeleteResourceParams{
+		ID:      int32(id),
+		OwnerID: userID,
+	})
+	if err != nil {
+		log.Printf("Failed to delete resource %d: %v", id, err)
+		http.Error(w, "failed to delete resource", http.StatusInternalServerError)
+		return
+	}
+
+	if len(s3Keys) > 0 {
+		if err := h.app.Storage.DeleteMultiple(r.Context(), s3Keys); err != nil {
+			log.Printf("Failed to cleanup S3 objects for resource %d: %v", id, err)
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handler) cleanupS3(r *http.Request, keys []string) {
 	if len(keys) == 0 {
 		return
