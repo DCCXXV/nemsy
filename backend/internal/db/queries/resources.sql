@@ -4,7 +4,7 @@ WHERE id = $1 LIMIT 1;
 
 -- name: GetResourceWithOwner :one
 SELECT
-    r.id, r.title, r.description, r.created_at,
+    r.id, r.title, r.description, r.created_at, r.download_count,
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
@@ -17,7 +17,7 @@ ORDER BY created_at DESC;
 
 -- name: ListResourcesBySubjectWithOwner :many
 SELECT
-    r.id, r.title, r.description, r.created_at,
+    r.id, r.title, r.description, r.created_at, r.download_count,
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
@@ -26,7 +26,7 @@ ORDER BY r.created_at DESC;
 
 -- name: ListResourcesBySubjectWithOwnerPaginated :many
 SELECT
-    r.id, r.title, r.description, r.created_at,
+    r.id, r.title, r.description, r.created_at, r.download_count,
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
@@ -41,7 +41,7 @@ ORDER BY created_at DESC;
 
 -- name: ListResourcesByOwnerWithSubject :many
 SELECT
-    r.id, r.title, r.description, r.created_at,
+    r.id, r.title, r.description, r.created_at, r.download_count,
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email,
     s.id AS subject_id, s.name AS subject_name
 FROM resources r
@@ -57,3 +57,6 @@ INSERT INTO resources (
     $1, $2, $3, $4
 )
 RETURNING *;
+
+-- name: IncrementDownloadCount :exec
+UPDATE resources SET download_count = download_count + 1 WHERE id = $1;

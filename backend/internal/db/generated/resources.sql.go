@@ -17,7 +17,7 @@ INSERT INTO resources (
 ) VALUES (
     $1, $2, $3, $4
 )
-RETURNING id, owner_id, subject_id, title, description, created_at
+RETURNING id, owner_id, subject_id, title, description, created_at, download_count
 `
 
 type CreateResourceParams struct {
@@ -42,12 +42,13 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 		&i.Title,
 		&i.Description,
 		&i.CreatedAt,
+		&i.DownloadCount,
 	)
 	return i, err
 }
 
 const getResource = `-- name: GetResource :one
-SELECT id, owner_id, subject_id, title, description, created_at FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE id = $1 LIMIT 1
 `
 
@@ -61,13 +62,14 @@ func (q *Queries) GetResource(ctx context.Context, id int32) (Resource, error) {
 		&i.Title,
 		&i.Description,
 		&i.CreatedAt,
+		&i.DownloadCount,
 	)
 	return i, err
 }
 
 const getResourceWithOwner = `-- name: GetResourceWithOwner :one
 SELECT
-    r.id, r.title, r.description, r.created_at,
+    r.id, r.title, r.description, r.created_at, r.download_count,
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
@@ -79,6 +81,7 @@ type GetResourceWithOwnerRow struct {
 	Title         string
 	Description   pgtype.Text
 	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
 	OwnerID       int32
 	OwnerUsername string
 	OwnerEmail    string
@@ -92,6 +95,7 @@ func (q *Queries) GetResourceWithOwner(ctx context.Context, id int32) (GetResour
 		&i.Title,
 		&i.Description,
 		&i.CreatedAt,
+		&i.DownloadCount,
 		&i.OwnerID,
 		&i.OwnerUsername,
 		&i.OwnerEmail,
@@ -99,8 +103,17 @@ func (q *Queries) GetResourceWithOwner(ctx context.Context, id int32) (GetResour
 	return i, err
 }
 
+const incrementDownloadCount = `-- name: IncrementDownloadCount :exec
+UPDATE resources SET download_count = download_count + 1 WHERE id = $1
+`
+
+func (q *Queries) IncrementDownloadCount(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, incrementDownloadCount, id)
+	return err
+}
+
 const listResourcesByOwner = `-- name: ListResourcesByOwner :many
-SELECT id, owner_id, subject_id, title, description, created_at FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE owner_id = $1
 ORDER BY created_at DESC
 `
@@ -121,6 +134,7 @@ func (q *Queries) ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Re
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
+			&i.DownloadCount,
 		); err != nil {
 			return nil, err
 		}
@@ -134,7 +148,7 @@ func (q *Queries) ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Re
 
 const listResourcesByOwnerWithSubject = `-- name: ListResourcesByOwnerWithSubject :many
 SELECT
-    r.id, r.title, r.description, r.created_at,
+    r.id, r.title, r.description, r.created_at, r.download_count,
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email,
     s.id AS subject_id, s.name AS subject_name
 FROM resources r
@@ -149,6 +163,7 @@ type ListResourcesByOwnerWithSubjectRow struct {
 	Title         string
 	Description   pgtype.Text
 	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
 	OwnerID       int32
 	OwnerUsername string
 	OwnerEmail    string
@@ -170,6 +185,7 @@ func (q *Queries) ListResourcesByOwnerWithSubject(ctx context.Context, ownerID i
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
+			&i.DownloadCount,
 			&i.OwnerID,
 			&i.OwnerUsername,
 			&i.OwnerEmail,
@@ -187,7 +203,7 @@ func (q *Queries) ListResourcesByOwnerWithSubject(ctx context.Context, ownerID i
 }
 
 const listResourcesBySubject = `-- name: ListResourcesBySubject :many
-SELECT id, owner_id, subject_id, title, description, created_at FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE subject_id = $1
 ORDER BY created_at DESC
 `
@@ -208,6 +224,7 @@ func (q *Queries) ListResourcesBySubject(ctx context.Context, subjectID int32) (
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
+			&i.DownloadCount,
 		); err != nil {
 			return nil, err
 		}
@@ -221,7 +238,7 @@ func (q *Queries) ListResourcesBySubject(ctx context.Context, subjectID int32) (
 
 const listResourcesBySubjectWithOwner = `-- name: ListResourcesBySubjectWithOwner :many
 SELECT
-    r.id, r.title, r.description, r.created_at,
+    r.id, r.title, r.description, r.created_at, r.download_count,
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
@@ -234,6 +251,7 @@ type ListResourcesBySubjectWithOwnerRow struct {
 	Title         string
 	Description   pgtype.Text
 	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
 	OwnerID       int32
 	OwnerUsername string
 	OwnerEmail    string
@@ -253,6 +271,7 @@ func (q *Queries) ListResourcesBySubjectWithOwner(ctx context.Context, subjectID
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
+			&i.DownloadCount,
 			&i.OwnerID,
 			&i.OwnerUsername,
 			&i.OwnerEmail,
@@ -269,7 +288,7 @@ func (q *Queries) ListResourcesBySubjectWithOwner(ctx context.Context, subjectID
 
 const listResourcesBySubjectWithOwnerPaginated = `-- name: ListResourcesBySubjectWithOwnerPaginated :many
 SELECT
-    r.id, r.title, r.description, r.created_at,
+    r.id, r.title, r.description, r.created_at, r.download_count,
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email
 FROM resources r
 JOIN users u ON r.owner_id = u.id
@@ -289,6 +308,7 @@ type ListResourcesBySubjectWithOwnerPaginatedRow struct {
 	Title         string
 	Description   pgtype.Text
 	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
 	OwnerID       int32
 	OwnerUsername string
 	OwnerEmail    string
@@ -308,6 +328,7 @@ func (q *Queries) ListResourcesBySubjectWithOwnerPaginated(ctx context.Context, 
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
+			&i.DownloadCount,
 			&i.OwnerID,
 			&i.OwnerUsername,
 			&i.OwnerEmail,

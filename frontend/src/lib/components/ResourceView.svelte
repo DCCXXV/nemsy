@@ -10,9 +10,10 @@
 	import MarkdownViewer from '$lib/components/MarkdownViewer.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 
-	let { resource }: { resource: Resource } = $props();
+	let { resource, ondownload }: { resource: Resource; ondownload?: () => void } = $props();
 
 	let selectedFileIndex = $state(0);
+	let localDownloads = $state(0);
 
 	const selectedFile = $derived(resource.files?.[selectedFileIndex] ?? resource.files?.[0]);
 
@@ -67,12 +68,20 @@
 		{#if resource.description}
 			<p class="text-sm text-zinc-700 leading-relaxed">{resource.description}</p>
 		{/if}
-		<a href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download" class="md:mt-auto">
-			<div
-				class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-2 flex items-center cursor-pointer text-sm rounded-none"
-			>
-				<DownloadSimpleIcon class="size-4 mr-1" />Descargar
-			</div>
+		<a
+			href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download"
+			class="md:mt-auto flex items-center border border-blue-300 rounded-none cursor-pointer text-sm"
+			onclick={() => {
+				localDownloads++;
+				ondownload?.();
+			}}
+		>
+			<span class="bg-zinc-50 text-blue-900 px-2 py-1.5 flex items-center gap-1">
+				{resource.downloadCount + localDownloads}<DownloadSimpleIcon class="size-4" />
+			</span>
+			<span class="bg-blue-200 hover:bg-blue-100 text-blue-900 px-3 py-1.5 flex-1 text-center">
+				Descargar
+			</span>
 		</a>
 	</div>
 

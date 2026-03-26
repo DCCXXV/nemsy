@@ -27,6 +27,7 @@ type Querier interface {
 	GetUserWithStudy(ctx context.Context, id int32) (GetUserWithStudyRow, error)
 	GetUserWithStudyByEmail(ctx context.Context, email string) (GetUserWithStudyByEmailRow, error)
 	GetUserWithStudyByUsername(ctx context.Context, username string) (GetUserWithStudyByUsernameRow, error)
+	IncrementDownloadCount(ctx context.Context, id int32) error
 	ListFilesByResource(ctx context.Context, resourceID int32) ([]ResourceFile, error)
 	ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Resource, error)
 	ListResourcesByOwnerWithSubject(ctx context.Context, ownerID int32) ([]ListResourcesByOwnerWithSubjectRow, error)

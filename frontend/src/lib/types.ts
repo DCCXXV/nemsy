@@ -31,6 +31,7 @@ export interface Resource {
 	description?: string;
 	files: ResourceFile[];
 	createdAt: string;
+	downloadCount: number;
 	owner?: {
 		id: number;
 		username: string;

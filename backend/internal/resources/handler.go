@@ -35,13 +35,14 @@ type FileResponse struct {
 }
 
 type ResourceResponse struct {
-	ID          int32          `json:"id"`
-	Title       string         `json:"title"`
-	Description *string        `json:"description,omitempty"`
-	Files       []FileResponse `json:"files"`
-	CreatedAt   string         `json:"createdAt"`
-	Owner       *Owner         `json:"owner,omitempty"`
-	Subject     *SubjectInfo   `json:"subject,omitempty"`
+	ID            int32          `json:"id"`
+	Title         string         `json:"title"`
+	Description   *string        `json:"description,omitempty"`
+	Files         []FileResponse `json:"files"`
+	CreatedAt     string         `json:"createdAt"`
+	DownloadCount int32          `json:"downloadCount"`
+	Owner         *Owner         `json:"owner,omitempty"`
+	Subject       *SubjectInfo   `json:"subject,omitempty"`
 }
 
 type Owner struct {
@@ -265,10 +266,11 @@ func (h *Handler) ListBySubject(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rr := ResourceResponse{
-			ID:        res.ID,
-			Title:     res.Title,
-			Files:     fileResponses,
-			CreatedAt: res.CreatedAt.Time.Format(time.RFC3339),
+			ID:            res.ID,
+			Title:         res.Title,
+			Files:         fileResponses,
+			CreatedAt:     res.CreatedAt.Time.Format(time.RFC3339),
+			DownloadCount: res.DownloadCount,
 			Owner: &Owner{
 				ID:       res.OwnerID,
 				Username: res.OwnerUsername,
@@ -321,10 +323,11 @@ func (h *Handler) ListByUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rr := ResourceResponse{
-			ID:        res.ID,
-			Title:     res.Title,
-			Files:     fileResponses,
-			CreatedAt: res.CreatedAt.Time.Format(time.RFC3339),
+			ID:            res.ID,
+			Title:         res.Title,
+			Files:         fileResponses,
+			CreatedAt:     res.CreatedAt.Time.Format(time.RFC3339),
+			DownloadCount: res.DownloadCount,
 			Owner: &Owner{
 				ID:       res.OwnerID,
 				Username: res.OwnerUsername,
@@ -363,6 +366,10 @@ func (h *Handler) Download(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(files) == 0 {
 		http.Error(w, "no files found", http.StatusNotFound)
 		return
+	}
+
+	if err := h.app.Queries.IncrementDownloadCount(r.Context(), int32(id)); err != nil {
+		log.Printf("Failed to increment download count for resource %d: %v", id, err)
 	}
 
 	// Single file: redirect to presigned URL
@@ -476,10 +483,11 @@ func buildResourceResponse(res db.GetResourceWithOwnerRow, files []db.ResourceFi
 	}
 
 	rr := ResourceResponse{
-		ID:        res.ID,
-		Title:     res.Title,
-		Files:     fileResponses,
-		CreatedAt: res.CreatedAt.Time.Format(time.RFC3339),
+		ID:            res.ID,
+		Title:         res.Title,
+		Files:         fileResponses,
+		CreatedAt:     res.CreatedAt.Time.Format(time.RFC3339),
+		DownloadCount: res.DownloadCount,
 		Owner: &Owner{
 			ID:       res.OwnerID,
 			Username: res.OwnerUsername,

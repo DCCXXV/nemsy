@@ -15,12 +15,13 @@ type PinnedSubject struct {
 }
 
 type Resource struct {
-	ID          int32
-	OwnerID     int32
-	SubjectID   int32
-	Title       string
-	Description pgtype.Text
-	CreatedAt   pgtype.Timestamp
+	ID            int32
+	OwnerID       int32
+	SubjectID     int32
+	Title         string
+	Description   pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
 }
 
 type ResourceFile struct {

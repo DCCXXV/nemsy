@@ -13,6 +13,7 @@
 	import QuestionIcon from 'phosphor-svelte/lib/QuestionIcon';
 	import ImagesIcon from 'phosphor-svelte/lib/ImagesIcon';
 	import ClockClockwiseIcon from 'phosphor-svelte/lib/ClockClockwiseIcon';
+	import TrendUpIcon from 'phosphor-svelte/lib/TrendUpIcon';
 	import SmileyNervousIcon from 'phosphor-svelte/lib/SmileyNervousIcon';
 	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
 
@@ -37,20 +38,37 @@
 
 	let compactMode = $state(initialCompactMode);
 	let query = $state('');
+	let sortBy = $state<'recent' | 'downloads'>('downloads');
+	let localDownloads = $state<Record<number, number>>({});
 
-	const filteredResources = $derived(
-		query.trim() === ''
-			? resources
-			: resources.filter(
-					(r) =>
-						r.title.toLowerCase().includes(query.toLowerCase()) ||
-						r.description?.toLowerCase().includes(query.toLowerCase())
-				)
-	);
+	function getDownloadCount(resource: Resource): number {
+		return resource.downloadCount + (localDownloads[resource.id] ?? 0);
+	}
+
+	function handleDownload(resource: Resource) {
+		localDownloads[resource.id] = (localDownloads[resource.id] ?? 0) + 1;
+	}
+
+	const filteredResources = $derived.by(() => {
+		const filtered =
+			query.trim() === ''
+				? resources
+				: resources.filter(
+						(r) =>
+							r.title.toLowerCase().includes(query.toLowerCase()) ||
+							r.description?.toLowerCase().includes(query.toLowerCase())
+					);
+		if (sortBy === 'downloads') {
+			return [...filtered].sort((a, b) => getDownloadCount(b) - getDownloadCount(a));
+		}
+		return filtered;
+	});
 
 	onMount(() => {
 		const saved = localStorage.getItem('compactMode');
 		if (saved !== null) compactMode = saved === 'true';
+		const savedSort = localStorage.getItem('sortBy');
+		if (savedSort === 'recent' || savedSort === 'downloads') sortBy = savedSort;
 	});
 
 	function toggleCompactMode() {
@@ -90,10 +108,21 @@
 			class="bg-transparent text-sm text-zinc-700 placeholder-zinc-400 outline-none border-none focus:outline-none ring-0 focus:ring-0 w-full"
 		/>
 	</div>
-	<div class="text-zinc-500 bg-zinc-100 border-l border-zinc-300">
-		<button class="flex gap-1 items-center justify-center px-2">
-			<ClockClockwiseIcon class="size-6" />
-			<span class="w-20 text-left">Recientes</span>
+	<div class="text-zinc-500 bg-zinc-100 border-l hover:text-zinc-900 border-zinc-300">
+		<button
+			class="flex gap-1 items-center justify-center cursor-pointer px-2"
+			onclick={() => {
+				sortBy = sortBy === 'recent' ? 'downloads' : 'recent';
+				localStorage.setItem('sortBy', sortBy);
+			}}
+		>
+			{#if sortBy === 'recent'}
+				<ClockClockwiseIcon class="size-6" />
+				<span class="w-20 text-left">Recientes</span>
+			{:else}
+				<TrendUpIcon class="size-6" />
+				<span class="w-20 text-left">Descargas</span>
+			{/if}
 		</button>
 	</div>
 	<div class="text-zinc-500 bg-zinc-100 border-l hover:text-zinc-900 border-zinc-300">
@@ -183,13 +212,18 @@
 							<div class="flex justify-end gap-2">
 								<a
 									href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download"
-									onclick={(e) => e.stopPropagation()}
+									class="flex items-center border border-blue-300 rounded-none cursor-pointer text-sm"
+									onclick={(e) => {
+										e.stopPropagation();
+										handleDownload(resource);
+									}}
 								>
-									<div
-										class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-2 py-0.5 flex items-center cursor-pointer text-sm rounded-none"
-									>
-										<DownloadSimpleIcon class="size-4 mr-1" />Descargar
-									</div>
+									<span class="bg-zinc-50 text-blue-900 px-1.5 py-0.5 flex items-center gap-1">
+										{getDownloadCount(resource)}<DownloadSimpleIcon class="size-4" />
+									</span>
+									<span class="bg-blue-200 hover:bg-blue-100 text-blue-900 px-2 py-0.5">
+										Descargar
+									</span>
 								</a>
 							</div>
 						</div>
@@ -262,13 +296,18 @@
 							<div class="flex justify-end mb-4 gap-2">
 								<a
 									href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download"
-									onclick={(e) => e.stopPropagation()}
+									class="flex items-center border border-blue-300 rounded-none cursor-pointer"
+									onclick={(e) => {
+										e.stopPropagation();
+										handleDownload(resource);
+									}}
 								>
-									<div
-										class="bg-blue-200 border border-blue-100 hover:bg-blue-100 text-blue-900 px-3 py-1 flex items-center cursor-pointer rounded-none"
-									>
-										<DownloadSimpleIcon class="size-5 mr-2" />Descargar
-									</div>
+									<span class="bg-zinc-50 text-blue-900 px-2 py-1 flex items-center gap-1">
+										{getDownloadCount(resource)}<DownloadSimpleIcon class="size-4" />
+									</span>
+									<span class="bg-blue-200 hover:bg-blue-100 text-blue-900 px-3 py-1">
+										Descargar
+									</span>
 								</a>
 							</div>
 						</div>
@@ -280,7 +319,7 @@
 				<Dialog.Content
 					class="bg-zinc-50 border-zinc-300 outline-hidden fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-1rem)] md:max-w-[calc(100%-8rem)] h-[calc(100svh-1rem)] md:h-[calc(100svh-4rem)] translate-x-[-50%] translate-y-[-50%] border overflow-hidden"
 				>
-					<ResourceView {resource} />
+					<ResourceView {resource} ondownload={() => handleDownload(resource)} />
 				</Dialog.Content>
 			</Dialog.Portal>
 		</Dialog.Root>

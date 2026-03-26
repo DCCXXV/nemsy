@@ -25,7 +25,6 @@
 				nemsy
 			</a>
 
-			<!-- Desktop center nav -->
 			<div class="hidden md:flex flex-1 justify-center">
 				<ul class="flex list-none bg-zinc-50 rounded-none">
 					<li>
