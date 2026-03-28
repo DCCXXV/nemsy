@@ -3,6 +3,7 @@
 	import type { LayoutData } from './$types';
 	import { page } from '$app/state';
 
+	import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
 	import HouseIcon from 'phosphor-svelte/lib/HouseIcon';
 	import ShapesIcon from 'phosphor-svelte/lib/ShapesIcon';
 	import UserIcon from 'phosphor-svelte/lib/UserIcon';
@@ -36,6 +37,15 @@
 							href="/"
 							><HouseIcon class="size-5 mr-2" />Inicio
 						</a>
+					</li>
+					<li>
+						<a
+							class="h-10 flex items-center px-6 py-2 transition-colors
+							{currentPath === '/search'
+								? 'bg-zinc-200 text-zinc-700 border-zinc-200 border hover:bg-zinc-300'
+								: 'bg-zinc-100 border-zinc-300 border text-zinc-700 hover:bg-zinc-300'}"
+							href="/search"><GlobeIcon class="size-5 mr-2" />Búsqueda Global</a
+						>
 					</li>
 					<li>
 						<a

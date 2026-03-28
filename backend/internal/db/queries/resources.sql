@@ -61,5 +61,20 @@ RETURNING *;
 -- name: IncrementDownloadCount :exec
 UPDATE resources SET download_count = download_count + 1 WHERE id = $1;
 
+-- name: SearchResources :many
+SELECT
+    r.id, r.title, r.description, r.created_at, r.download_count,
+    u.id AS owner_id, u.username AS owner_username, u.email AS owner_email,
+    s.id AS subject_id, s.name AS subject_name,
+    st.id AS study_id, st.name AS study_name,
+    ts_rank(r.search_vector, websearch_to_tsquery('spanish', $1)) AS rank
+FROM resources r
+JOIN users u ON r.owner_id = u.id
+JOIN subjects s ON r.subject_id = s.id
+JOIN studies st ON s.study_id = st.id
+WHERE r.search_vector @@ websearch_to_tsquery('spanish', $1)
+ORDER BY rank DESC
+LIMIT 20;
+
 -- name: DeleteResource :exec
 DELETE FROM resources WHERE id = $1 AND owner_id = $2;

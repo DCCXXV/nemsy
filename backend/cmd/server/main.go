@@ -99,6 +99,7 @@ func main() {
 		protected.Get("/api/users/{id}", usersHandler.Get)
 		protected.Get("/api/users/by/{username}", usersHandler.GetByUsername)
 
+		protected.Get("/api/resources/search", resourcesHandler.Search)
 		protected.Get("/api/resources/by/{username}", resourcesHandler.ListByUser)
 
 		protected.Get("/api/studies", studiesHandler.ListStudies)

@@ -17,7 +17,7 @@ INSERT INTO resources (
 ) VALUES (
     $1, $2, $3, $4
 )
-RETURNING id, owner_id, subject_id, title, description, created_at, download_count
+RETURNING id, owner_id, subject_id, title, description, created_at, download_count, search_vector
 `
 
 type CreateResourceParams struct {
@@ -43,6 +43,7 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 		&i.Description,
 		&i.CreatedAt,
 		&i.DownloadCount,
+		&i.SearchVector,
 	)
 	return i, err
 }
@@ -62,7 +63,7 @@ func (q *Queries) DeleteResource(ctx context.Context, arg DeleteResourceParams) 
 }
 
 const getResource = `-- name: GetResource :one
-SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count, search_vector FROM resources
 WHERE id = $1 LIMIT 1
 `
 
@@ -77,6 +78,7 @@ func (q *Queries) GetResource(ctx context.Context, id int32) (Resource, error) {
 		&i.Description,
 		&i.CreatedAt,
 		&i.DownloadCount,
+		&i.SearchVector,
 	)
 	return i, err
 }
@@ -127,7 +129,7 @@ func (q *Queries) IncrementDownloadCount(ctx context.Context, id int32) error {
 }
 
 const listResourcesByOwner = `-- name: ListResourcesByOwner :many
-SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count, search_vector FROM resources
 WHERE owner_id = $1
 ORDER BY created_at DESC
 `
@@ -149,6 +151,7 @@ func (q *Queries) ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Re
 			&i.Description,
 			&i.CreatedAt,
 			&i.DownloadCount,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -217,7 +220,7 @@ func (q *Queries) ListResourcesByOwnerWithSubject(ctx context.Context, ownerID i
 }
 
 const listResourcesBySubject = `-- name: ListResourcesBySubject :many
-SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count, search_vector FROM resources
 WHERE subject_id = $1
 ORDER BY created_at DESC
 `
@@ -239,6 +242,7 @@ func (q *Queries) ListResourcesBySubject(ctx context.Context, subjectID int32) (
 			&i.Description,
 			&i.CreatedAt,
 			&i.DownloadCount,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -346,6 +350,72 @@ func (q *Queries) ListResourcesBySubjectWithOwnerPaginated(ctx context.Context, 
 			&i.OwnerID,
 			&i.OwnerUsername,
 			&i.OwnerEmail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchResources = `-- name: SearchResources :many
+SELECT
+    r.id, r.title, r.description, r.created_at, r.download_count,
+    u.id AS owner_id, u.username AS owner_username, u.email AS owner_email,
+    s.id AS subject_id, s.name AS subject_name,
+    st.id AS study_id, st.name AS study_name,
+    ts_rank(r.search_vector, websearch_to_tsquery('spanish', $1)) AS rank
+FROM resources r
+JOIN users u ON r.owner_id = u.id
+JOIN subjects s ON r.subject_id = s.id
+JOIN studies st ON s.study_id = st.id
+WHERE r.search_vector @@ websearch_to_tsquery('spanish', $1)
+ORDER BY rank DESC
+LIMIT 20
+`
+
+type SearchResourcesRow struct {
+	ID            int32
+	Title         string
+	Description   pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
+	OwnerID       int32
+	OwnerUsername string
+	OwnerEmail    string
+	SubjectID     int32
+	SubjectName   string
+	StudyID       int32
+	StudyName     string
+	Rank          float32
+}
+
+func (q *Queries) SearchResources(ctx context.Context, websearchToTsquery string) ([]SearchResourcesRow, error) {
+	rows, err := q.db.Query(ctx, searchResources, websearchToTsquery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchResourcesRow
+	for rows.Next() {
+		var i SearchResourcesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.CreatedAt,
+			&i.DownloadCount,
+			&i.OwnerID,
+			&i.OwnerUsername,
+			&i.OwnerEmail,
+			&i.SubjectID,
+			&i.SubjectName,
+			&i.StudyID,
+			&i.StudyName,
+			&i.Rank,
 		); err != nil {
 			return nil, err
 		}

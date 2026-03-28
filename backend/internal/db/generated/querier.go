@@ -41,6 +41,7 @@ type Querier interface {
 	ListSubjectsByStudy(ctx context.Context, studyID pgtype.Int4) ([]Subject, error)
 	ListSubjectsByStudyWithPinned(ctx context.Context, arg ListSubjectsByStudyWithPinnedParams) ([]ListSubjectsByStudyWithPinnedRow, error)
 	PinSubject(ctx context.Context, arg PinSubjectParams) error
+	SearchResources(ctx context.Context, websearchToTsquery string) ([]SearchResourcesRow, error)
 	UnpinSubject(ctx context.Context, arg UnpinSubjectParams) error
 	UpdateUserStudy(ctx context.Context, arg UpdateUserStudyParams) (User, error)
 }

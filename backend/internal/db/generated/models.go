@@ -22,6 +22,7 @@ type Resource struct {
 	Description   pgtype.Text
 	CreatedAt     pgtype.Timestamp
 	DownloadCount int32
+	SearchVector  interface{}
 }
 
 type ResourceFile struct {

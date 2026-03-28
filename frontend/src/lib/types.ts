@@ -41,4 +41,8 @@ export interface Resource {
 		id: number;
 		name: string;
 	};
+	study?: {
+		id: number;
+		name: string;
+	};
 }

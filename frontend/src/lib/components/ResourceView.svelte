@@ -104,16 +104,18 @@
 	</div>
 
 	<div class="md:order-1 flex-1 flex flex-col overflow-hidden border-r border-zinc-300 bg-zinc-100">
-		{#if isPdf}
-			<PdfViewer url={fileUrl} />
-		{:else if isImage}
-			<ImageViewer src={fileUrl} />
-		{:else if isMarkdown}
-			<MarkdownViewer url={fileUrl} />
-		{:else}
-			<div class="flex-1 flex items-center justify-center text-zinc-400 text-sm">
-				Sin previsualización
-			</div>
-		{/if}
+		{#key fileUrl}
+			{#if isPdf}
+				<PdfViewer url={fileUrl} />
+			{:else if isImage}
+				<ImageViewer src={fileUrl} />
+			{:else if isMarkdown}
+				<MarkdownViewer url={fileUrl} />
+			{:else}
+				<div class="flex-1 flex items-center justify-center text-zinc-400 text-sm">
+					Sin previsualización
+				</div>
+			{/if}
+		{/key}
 	</div>
 </div>

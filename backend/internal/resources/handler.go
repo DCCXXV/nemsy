@@ -43,12 +43,18 @@ type ResourceResponse struct {
 	DownloadCount int32          `json:"downloadCount"`
 	Owner         *Owner         `json:"owner,omitempty"`
 	Subject       *SubjectInfo   `json:"subject,omitempty"`
+	Study         *StudyInfo     `json:"study,omitempty"`
 }
 
 type Owner struct {
 	ID       int32  `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+}
+
+type StudyInfo struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
 type SubjectInfo struct {
@@ -543,6 +549,68 @@ func buildResourceResponse(res db.GetResourceWithOwnerRow, files []db.ResourceFi
 		rr.Description = &res.Description.String
 	}
 	return rr
+}
+
+func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]ResourceResponse{})
+		return
+	}
+
+	results, err := h.app.Queries.SearchResources(r.Context(), query)
+	if err != nil {
+		log.Printf("Failed to search resources: %v", err)
+		http.Error(w, "database error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := make([]ResourceResponse, 0, len(results))
+	for _, res := range results {
+		files, err := h.app.Queries.ListFilesByResource(r.Context(), res.ID)
+		if err != nil {
+			log.Printf("Failed to list files for resource %d: %v", res.ID, err)
+			continue
+		}
+
+		fileResponses := make([]FileResponse, 0, len(files))
+		for _, f := range files {
+			fileResponses = append(fileResponses, FileResponse{
+				ID:       f.ID,
+				FileName: f.FileName,
+				FileSize: f.FileSize,
+			})
+		}
+
+		rr := ResourceResponse{
+			ID:            res.ID,
+			Title:         res.Title,
+			Files:         fileResponses,
+			CreatedAt:     res.CreatedAt.Time.Format(time.RFC3339),
+			DownloadCount: res.DownloadCount,
+			Owner: &Owner{
+				ID:       res.OwnerID,
+				Username: res.OwnerUsername,
+				Email:    res.OwnerEmail,
+			},
+			Subject: &SubjectInfo{
+				ID:   res.SubjectID,
+				Name: res.SubjectName,
+			},
+			Study: &StudyInfo{
+				ID:   res.StudyID,
+				Name: res.StudyName,
+			},
+		}
+		if res.Description.Valid {
+			rr.Description = &res.Description.String
+		}
+		resp = append(resp, rr)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 func sanitizeFilename(name string) string {
