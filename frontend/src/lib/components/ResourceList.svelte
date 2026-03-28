@@ -224,7 +224,7 @@
 									<ResourceMenu
 										resourceId={resource.id}
 										isOwner={resource.owner?.id === currentUserId}
-										ondelete={() => deletedIds.add(resource.id)}
+										ondelete={() => (deletedIds = new Set([...deletedIds, resource.id]))}
 									/>
 								</div>
 								<div class="flex justify-end gap-2">
@@ -274,7 +274,7 @@
 								<ResourceMenu
 									resourceId={resource.id}
 									isOwner={resource.owner?.id === currentUserId}
-									ondelete={() => deletedIds.add(resource.id)}
+									ondelete={() => (deletedIds = new Set([...deletedIds, resource.id]))}
 								/>
 							</div>
 							{#if resource.files?.length}
@@ -319,7 +319,7 @@
 								</div>
 							{/if}
 							<p class="text-zinc-700">{resource.description}</p>
-							<div class="flex justify-end mb-4 gap-2">
+							<div class="flex justify-end gap-2">
 								<a
 									href="{PUBLIC_API_BASE_URL}/api/resources/{resource.id}/download"
 									class="flex items-center border border-blue-300 rounded-none cursor-pointer"
@@ -348,7 +348,7 @@
 							{resource}
 							{currentUserId}
 							ondownload={() => handleDownload(resource)}
-							ondelete={() => deletedIds.add(resource.id)}
+							ondelete={() => (deletedIds = new Set([...deletedIds, resource.id]))}
 						/>
 					</Dialog.Content>
 				</Dialog.Portal>

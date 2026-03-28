@@ -5,9 +5,7 @@
 <div
 	class="flex flex-col lg:flex-row min-h-screen bg-zinc-100 p-2 items-center lg:items-stretch justify-center lg:justify-normal"
 >
-	<div class="invisible lg:visible lg:w-1/2 bg-zinc-100">
-		<img src="/img/friends.svg" alt="f" class="size-167 mt-60 ml-25" />
-	</div>
+	<div class="invisible lg:visible lg:w-1/2 bg-zinc-100"></div>
 
 	<div
 		class="w-full lg:w-1/2 bg-zinc-50 rounded-none flex items-center justify-center border border-zinc-300 px-4 py-20"

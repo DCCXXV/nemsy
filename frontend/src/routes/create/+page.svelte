@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Combobox } from 'bits-ui';
+	import { Combobox, Checkbox } from 'bits-ui';
 	import { FileUpload } from 'melt/components';
 	import CaretUpDownIcon from 'phosphor-svelte/lib/CaretUpDownIcon';
 	import CheckIcon from 'phosphor-svelte/lib/CheckIcon';
@@ -28,6 +28,7 @@
 		(typeof localStorage !== 'undefined' ? localStorage.getItem('lastSubject') : null);
 	let selectedSubject = $state<string | undefined>(initialSubjectId ?? undefined);
 	let description = $state('');
+	let acceptedRights = $state(false);
 	let selectedFiles = $state<Set<File>>(new Set());
 	let searchValue = $state(
 		untrack(() =>
@@ -118,6 +119,11 @@
 			return;
 		}
 
+		if (!acceptedRights) {
+			error = 'Debes confirmar que tienes derecho a compartir este contenido.';
+			return;
+		}
+
 		isSubmitting = true;
 		error = '';
 
@@ -160,7 +166,7 @@
 	<div class="relative z-10 flex flex-col md:flex-row items-start gap-4 w-full md:w-auto">
 		<div class="bg-zinc-50 border border-zinc-300 w-full md:w-[43vw] shrink-0 p-4">
 			{#if error}
-				<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-none mb-4">
+				<div class="bg-red-200 text-red-700 px-4 py-2 rounded-none mb-4">
 					{error}
 				</div>
 			{/if}
@@ -291,19 +297,41 @@
 				</FileUpload>
 			</div>
 
-			<div class="flex flex-col">
-				<label for="description">Descripcion (Opcional)</label>
+			<div class="flex flex-col mb-4">
+				<div class="flex justify-between items-center">
+					<label for="description">Descripcion (Opcional)</label>
+					<span class="text-xs text-zinc-500">{description.length}/500</span>
+				</div>
 				<textarea
 					name="description"
 					bind:value={description}
+					maxlength={500}
 					placeholder="Describe el recurso que vas a subir para ayudar a que otros estudiantes entiendan de que se trata."
 					class="bg-zinc-100 border border-zinc-300 p-2 text-zinc-700 rounded-none focus:ring-0 focus:border-blue-600"
 				></textarea>
 			</div>
+			<div class="flex items-center gap-2">
+				<Checkbox.Root
+					bind:checked={acceptedRights}
+					class="inline-flex size-5 shrink-0 items-center justify-center border bg-zinc-100 border-zinc-300 cursor-pointer data-[state=checked]:bg-violet-200 data-[state=checked]:border-violet-200 rounded-none"
+				>
+					{#snippet children({ checked })}
+						{#if checked}
+							<div class="inline-flex items-center justify-center">
+								<CheckIcon class="size-3.5 text-violet-700" weight="bold" />
+							</div>
+						{/if}
+					{/snippet}
+				</Checkbox.Root>
+				<span class="text-sm text-zinc-600 select-none">
+					Confirmo que tengo derecho a compartir este contenido y que no infringe derechos de autor
+					de terceros.
+				</span>
+			</div>
 			<div class="flex justify-end">
 				<button
 					onclick={handleSubmit}
-					disabled={isSubmitting}
+					disabled={isSubmitting || !acceptedRights}
 					class="flex items-center gap-2 bg-lime-200 text-lime-700 px-6 py-2 mt-4 rounded-none cursor-pointer hover:bg-lime-100 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					<PaperPlaneTiltIcon class="size-5" />{isSubmitting ? 'Subiendo...' : 'Subir Recurso'}

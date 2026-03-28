@@ -47,12 +47,14 @@
 			<DotsThreeVerticalIcon weight="bold" class="size-4" />
 		</Popover.Trigger>
 		<Popover.Content class="z-100 bg-zinc-50 border border-zinc-300 min-w-36" sideOffset={4}>
-			<button
-				class="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 cursor-pointer"
-				onclick={() => (open = false)}
-			>
-				<FlagIcon class="size-4" />Reportar
-			</button>
+			{#if !isOwner}
+				<button
+					class="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 cursor-pointer"
+					onclick={() => (open = false)}
+				>
+					<FlagIcon class="size-4" />Reportar
+				</button>
+			{/if}
 			{#if isOwner}
 				<button
 					class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"

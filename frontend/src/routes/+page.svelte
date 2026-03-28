@@ -2,7 +2,7 @@
 	import { PUBLIC_API_BASE_URL } from '$env/static/public';
 
 	import type { PageData } from './$types';
-	import { Tabs } from 'bits-ui';
+	import { Tabs, Collapsible } from 'bits-ui';
 	import type { Subject } from '$lib/types';
 	import { page } from '$app/state';
 	import { goto, invalidate } from '$app/navigation';
@@ -12,6 +12,7 @@
 
 	import PushPinIcon from 'phosphor-svelte/lib/PushPinIcon';
 	import PencilRulerIcon from 'phosphor-svelte/lib/PencilRulerIcon';
+	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 	import ResourceList from '$lib/components/ResourceList.svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -103,72 +104,82 @@
 					/>
 					<p class="text-xl">Universidad Complutense de Madrid</p>
 				</div>
-				<div class="p-2 flex gap-4 items-center border-b border-zinc-300">
-					<p class="text-lg">Grado en Ingeniería de Software</p>
-				</div>
 				<div
 					class="px-2 py-1 flex gap-4 items-center text-zinc-700 border-b border-zinc-300 bg-zinc-100"
 				>
-					<p class="text-lg">Asignaturas</p>
+					<p class="text-lg">Estudio</p>
 				</div>
-				<div class="p-2 flex gap-4 items-center">
-					<Tabs.Root value={selectedTab} onValueChange={selectTab} class="w-full">
-						<Tabs.List class="flex w-full gap-2">
-							{#each tabIds as id (id)}
-								<Tabs.Trigger
-									value={id}
-									class="flex-1 rounded-none px-2 py-1 cursor-pointer border border-zinc-200 transition-colors bg-zinc-100 text-zinc-950 hover:bg-zinc-200 data-[state=active]:bg-violet-200 data-[state=active]:text-violet-900 hover:data-[state=active]:bg-violet-200 text-center"
-								>
-									{id}
-								</Tabs.Trigger>
-							{/each}
-						</Tabs.List>
+				<div class="p-2 flex gap-4 items-center border-b border-zinc-300">
+					<p class="text-lg">Grado en Ingeniería de Software</p>
+				</div>
+				<Collapsible.Root open>
+					<Collapsible.Trigger
+						class="group px-2 py-1 w-full flex justify-between items-center text-zinc-700 bg-zinc-100 cursor-pointer data-[state=open]:border-b data-[state=open]:border-zinc-300"
+					>
+						<p class="text-lg">Asignaturas</p>
+						<CaretDownIcon class="size-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+					</Collapsible.Trigger>
+					<Collapsible.Content>
+						<div class="p-2 flex gap-4 items-center">
+							<Tabs.Root value={selectedTab} onValueChange={selectTab} class="w-full">
+								<Tabs.List class="flex w-full gap-2">
+									{#each tabIds as id (id)}
+										<Tabs.Trigger
+											value={id}
+											class="flex-1 rounded-none px-2 py-1 cursor-pointer border border-zinc-200 transition-colors bg-zinc-100 text-zinc-950 hover:bg-zinc-200 data-[state=active]:bg-violet-200 data-[state=active]:text-violet-900 hover:data-[state=active]:bg-violet-200 text-center"
+										>
+											{id}
+										</Tabs.Trigger>
+									{/each}
+								</Tabs.List>
 
-						{#each tabIds as id (id)}
-							<Tabs.Content value={id}>
-								<div class="max-h-[calc(50vh-2rem)] overflow-auto">
-									<ul class="pt-2">
-										{#if id === 'Fijadas'}
-											{#if pinnedSubjects.length}
-												{#each pinnedSubjects as subject (subject.id)}
-													<a
-														href="?subject={subject.id}"
-														onclick={() => selectSubject(subject.id.toString())}
-														class="block rounded-none py-2 px-2 mb-2 border cursor-pointer
-													{selectedSubject?.name == subject?.name
-															? 'bg-lime-200 border-lime-200 text-lime-800'
-															: 'text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border-zinc-50 hover:border-zinc-200'}"
-													>
-														{subject.name}
-													</a>
-												{/each}
-											{:else}
-												<li class="text-zinc-500 py-2 px-2">
-													No has fijado ninguna asignatura todavía
-												</li>
-											{/if}
-										{:else if subjectsByYear[id]?.length}
-											{#each subjectsByYear[id] as subject (subject.id)}
-												<a
-													href="?subject={subject.id}"
-													onclick={() => selectSubject(subject.id.toString())}
-													class="block rounded-none py-2 px-2 mb-2 border cursor-pointer
-												{selectedSubject?.name == subject?.name
-														? 'bg-lime-200 border-lime-200 text-lime-800'
-														: 'text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border-zinc-50 hover:border-zinc-200'}"
-												>
-													{subject.name}
-												</a>
-											{/each}
-										{:else}
-											<li class="text-zinc-500 py-2 px-2">No hay asignaturas</li>
-										{/if}
-									</ul>
-								</div>
-							</Tabs.Content>
-						{/each}
-					</Tabs.Root>
-				</div>
+								{#each tabIds as id (id)}
+									<Tabs.Content value={id}>
+										<div class="max-h-[calc(50vh-2rem)] overflow-auto">
+											<ul class="pt-2">
+												{#if id === 'Fijadas'}
+													{#if pinnedSubjects.length}
+														{#each pinnedSubjects as subject (subject.id)}
+															<a
+																href="?subject={subject.id}"
+																onclick={() => selectSubject(subject.id.toString())}
+																class="block rounded-none py-2 px-2 mb-2 border cursor-pointer
+															{selectedSubject?.name == subject?.name
+																	? 'bg-lime-200 border-lime-200 text-lime-800'
+																	: 'text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border-zinc-50 hover:border-zinc-200'}"
+															>
+																{subject.name}
+															</a>
+														{/each}
+													{:else}
+														<li class="text-zinc-500 py-2 px-2">
+															No has fijado ninguna asignatura todavía
+														</li>
+													{/if}
+												{:else if subjectsByYear[id]?.length}
+													{#each subjectsByYear[id] as subject (subject.id)}
+														<a
+															href="?subject={subject.id}"
+															onclick={() => selectSubject(subject.id.toString())}
+															class="block rounded-none py-2 px-2 mb-2 border cursor-pointer
+														{selectedSubject?.name == subject?.name
+																? 'bg-lime-200 border-lime-200 text-lime-800'
+																: 'text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border-zinc-50 hover:border-zinc-200'}"
+														>
+															{subject.name}
+														</a>
+													{/each}
+												{:else}
+													<li class="text-zinc-500 py-2 px-2">No hay asignaturas</li>
+												{/if}
+											</ul>
+										</div>
+									</Tabs.Content>
+								{/each}
+							</Tabs.Root>
+						</div>
+					</Collapsible.Content>
+				</Collapsible.Root>
 			</div>
 			<div
 				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/2 md:mx-4 {data

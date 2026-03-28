@@ -77,6 +77,11 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(description) > 500 {
+		http.Error(w, "description must be 500 characters or less", http.StatusBadRequest)
+		return
+	}
+
 	subjectID, err := strconv.Atoi(subjectIDStr)
 	if err != nil {
 		http.Error(w, "invalid subjectId", http.StatusBadRequest)
