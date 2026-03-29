@@ -15,6 +15,7 @@ import (
 	"github.com/DCCXXV/Nemsy/backend/internal/resources"
 	"github.com/DCCXXV/Nemsy/backend/internal/storage"
 	"github.com/DCCXXV/Nemsy/backend/internal/studies"
+	"github.com/DCCXXV/Nemsy/backend/internal/universities"
 	"github.com/DCCXXV/Nemsy/backend/internal/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -80,6 +81,7 @@ func main() {
 
 	authHandler := auth.NewHandler(auth.GoogleOAuthConfig(), secret, store, myApp.Queries)
 	studiesHandler := studies.NewHandler(myApp)
+	universitiesHandler := universities.NewHandler(myApp)
 	usersHandler := users.NewHandler(myApp)
 	resourcesHandler := resources.NewHandler(myApp)
 
@@ -92,6 +94,7 @@ func main() {
 
 		protected.Get("/api/me", usersHandler.MeHandler)
 		protected.Put("/api/me/study", usersHandler.UpdateUserStudy)
+		protected.Put("/api/me/university", usersHandler.UpdateUserUniversity)
 		protected.Get("/api/me/subjects", usersHandler.MySubjects)
 		protected.Post("/api/me/subjects/{id}/pin", usersHandler.PinSubject)
 		protected.Delete("/api/me/subjects/{id}/pin", usersHandler.UnpinSubject)
@@ -103,6 +106,8 @@ func main() {
 		protected.Get("/api/resources/by/{username}", resourcesHandler.ListByUser)
 
 		protected.Get("/api/studies", studiesHandler.ListStudies)
+		protected.Get("/api/universities/search", universitiesHandler.Search)
+		protected.Get("/api/universities/{universityId}/studies", studiesHandler.ListByUniversity)
 
 		protected.Post("/api/resources", resourcesHandler.Create)
 		protected.Get("/api/resources/{id}", resourcesHandler.Get)

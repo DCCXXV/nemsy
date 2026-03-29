@@ -41,15 +41,21 @@ type ResourceResponse struct {
 	Files         []FileResponse `json:"files"`
 	CreatedAt     string         `json:"createdAt"`
 	DownloadCount int32          `json:"downloadCount"`
-	Owner         *Owner         `json:"owner,omitempty"`
-	Subject       *SubjectInfo   `json:"subject,omitempty"`
-	Study         *StudyInfo     `json:"study,omitempty"`
+	Owner         *Owner           `json:"owner,omitempty"`
+	Subject       *SubjectInfo     `json:"subject,omitempty"`
+	Study         *StudyInfo       `json:"study,omitempty"`
+	University    *UniversityInfo  `json:"university,omitempty"`
 }
 
 type Owner struct {
 	ID       int32  `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+}
+
+type UniversityInfo struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
 type StudyInfo struct {
@@ -602,6 +608,12 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 				ID:   res.StudyID,
 				Name: res.StudyName,
 			},
+		}
+		if res.UniversityID.Valid {
+			rr.University = &UniversityInfo{
+				ID:   res.UniversityID.Int32,
+				Name: res.UniversityName.String,
+			}
 		}
 		if res.Description.Valid {
 			rr.Description = &res.Description.String

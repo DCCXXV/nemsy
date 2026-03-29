@@ -59,14 +59,15 @@
 		)
 	);
 
-	const tabIds = $derived(['Fijadas', ...Object.keys(subjectsByYear).sort()]);
+	const yearTabs = $derived(Object.keys(subjectsByYear).sort());
+	const tabIds = $derived(['Fijadas', ...yearTabs]);
 
 	const selectedSubjectID = $derived(page.url.searchParams.get('subject'));
 	const selectedSubject = $derived(
 		data.subjects.find((s) => s.id.toString() === selectedSubjectID)
 	);
 
-	let selectedTab = $state(tabIds[0]);
+	let selectedTab = $state('');
 
 	function selectSubject(id: string) {
 		localStorage.setItem('lastSubject', id);
@@ -77,13 +78,33 @@
 		localStorage.setItem('lastTab', id);
 	}
 
+	function firstSubjectOfYear(): Subject | undefined {
+		const firstYear = yearTabs[0];
+		if (firstYear && subjectsByYear[firstYear]?.length) {
+			return subjectsByYear[firstYear][0];
+		}
+		return data.subjects[0];
+	}
+
 	onMount(() => {
 		const savedTab = localStorage.getItem('lastTab');
-		if (savedTab && tabIds.includes(savedTab)) selectedTab = savedTab;
+		if (savedTab && tabIds.includes(savedTab)) {
+			selectedTab = savedTab;
+		} else {
+			selectedTab = yearTabs[0] || 'Fijadas';
+		}
 
 		if (!selectedSubjectID) {
 			const saved = localStorage.getItem('lastSubject');
-			if (saved) goto(`?subject=${saved}`, { replaceState: true });
+			if (saved && data.subjects.some((s) => s.id.toString() === saved)) {
+				goto(`?subject=${saved}`, { replaceState: true });
+			} else {
+				const first = firstSubjectOfYear();
+				if (first) {
+					selectSubject(first.id.toString());
+					goto(`?subject=${first.id}`, { replaceState: true });
+				}
+			}
 		}
 	});
 </script>
@@ -98,11 +119,11 @@
 			>
 				<div class="p-2 flex gap-4 items-center border-b border-zinc-300">
 					<img
-						src="https://www.google.com/s2/favicons?domain={data.me?.hd}&sz=64"
-						alt="Logo de {data.me?.hd}"
+						src="https://www.google.com/s2/favicons?domain={data.me?.universityDomain}&sz=64"
+						alt="Logo de {data.me?.universityName}"
 						class="rounded-none border border-zinc-300"
 					/>
-					<p class="text-xl">Universidad Complutense de Madrid</p>
+					<p class="text-xl">{data.me?.universityName ?? ''}</p>
 				</div>
 				<div
 					class="px-2 py-1 flex gap-4 items-center text-zinc-700 border-b border-zinc-300 bg-zinc-100"
@@ -221,16 +242,14 @@
 					{/if}
 				</div>
 				<div>
-					{#if selectedSubject}
-						<ResourceList
-							resources={data.resources}
-							currentUserId={data.me?.id}
-							emptyMessage="Todavía no hay recursos para esta asignatura."
-							emptySubMessage="¿Por qué no ayudas y compartes alguno?"
-						/>
-					{:else}
-						<p class="text-zinc-500 p-2">Selecciona una asignatura para empezar</p>
-					{/if}
+					<ResourceList
+						resources={data.resources}
+						currentUserId={data.me?.id}
+						emptyMessage={selectedSubject
+							? 'Todavía no hay recursos para esta asignatura.'
+							: 'Selecciona una asignatura para ver sus recursos.'}
+						emptySubMessage={selectedSubject ? '¿Por qué no ayudas y compartes alguno?' : ''}
+					/>
 				</div>
 			</div>
 			<div

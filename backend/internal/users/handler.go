@@ -22,12 +22,15 @@ func NewHandler(a *app.App) *Handler {
 }
 
 type UserResponse struct {
-	ID        int32   `json:"id"`
-	Email     string  `json:"email"`
-	Username  string  `json:"username"`
-	Hd        *string `json:"hd,omitempty"`
-	StudyID   *int32  `json:"studyId,omitempty"`
-	StudyName *string `json:"studyName,omitempty"`
+	ID               int32   `json:"id"`
+	Email            string  `json:"email"`
+	Username         string  `json:"username"`
+	Hd               *string `json:"hd,omitempty"`
+	StudyID          *int32  `json:"studyId,omitempty"`
+	StudyName        *string `json:"studyName,omitempty"`
+	UniversityID     *int32  `json:"universityId,omitempty"`
+	UniversityName   *string `json:"universityName,omitempty"`
+	UniversityDomain *string `json:"universityDomain,omitempty"`
 }
 
 func (h *Handler) MeHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,9 +58,53 @@ func (h *Handler) MeHandler(w http.ResponseWriter, r *http.Request) {
 		resp.StudyID = &user.StudyIDFk.Int32
 		resp.StudyName = &user.StudyName.String
 	}
+	if user.UniversityIDFk.Valid {
+		resp.UniversityID = &user.UniversityIDFk.Int32
+		resp.UniversityName = &user.UniversityName.String
+		if user.UniversityDomain.Valid {
+			resp.UniversityDomain = &user.UniversityDomain.String
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *Handler) UpdateUserUniversity(w http.ResponseWriter, r *http.Request) {
+	userIDVal := r.Context().Value(auth.CtxUserID)
+	if userIDVal == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID, ok := userIDVal.(int32)
+	if !ok {
+		http.Error(w, "invalid user ID type", http.StatusInternalServerError)
+		return
+	}
+
+	var req struct {
+		UniversityID int32 `json:"universityId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.UniversityID == 0 {
+		http.Error(w, "universityId is required", http.StatusBadRequest)
+		return
+	}
+
+	_, err := h.app.Queries.UpdateUserUniversity(r.Context(), db.UpdateUserUniversityParams{
+		ID:           userID,
+		UniversityID: pgtype.Int4{Int32: req.UniversityID, Valid: true},
+	})
+	if err != nil {
+		log.Printf("Failed to update university for user %d: %v", userID, err)
+		http.Error(w, "failed to update university", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) UpdateUserStudy(w http.ResponseWriter, r *http.Request) {
@@ -277,6 +324,13 @@ func (h *Handler) GetByUsername(w http.ResponseWriter, r *http.Request) {
 	if user.StudyIDFk.Valid {
 		resp.StudyID = &user.StudyIDFk.Int32
 		resp.StudyName = &user.StudyName.String
+	}
+	if user.UniversityIDFk.Valid {
+		resp.UniversityID = &user.UniversityIDFk.Int32
+		resp.UniversityName = &user.UniversityName.String
+		if user.UniversityDomain.Valid {
+			resp.UniversityDomain = &user.UniversityDomain.String
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

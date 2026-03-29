@@ -153,9 +153,11 @@
 							{/if}
 							<div class="flex flex-col flex-1 justify-between py-1">
 								<div>
-									{#if resource.study}
+									{#if resource.university || resource.study}
 										<p class="text-zinc-500 mb-1">
-											{resource.study.name}
+											{resource.university?.name}{#if resource.university && resource.study}
+												<span class="mx-1">-</span>
+											{/if}{resource.study?.name}
 										</p>
 									{/if}
 									<h2 class="text-lg">{resource.title}</h2>

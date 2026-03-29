@@ -22,6 +22,8 @@ type Querier interface {
 	GetResourceWithOwner(ctx context.Context, id int32) (GetResourceWithOwnerRow, error)
 	GetStudy(ctx context.Context, id int32) (Study, error)
 	GetSubject(ctx context.Context, id int32) (Subject, error)
+	GetUniversity(ctx context.Context, id int32) (University, error)
+	GetUniversityByDomain(ctx context.Context, domain string) (University, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
@@ -37,13 +39,17 @@ type Querier interface {
 	ListResourcesBySubjectWithOwnerPaginated(ctx context.Context, arg ListResourcesBySubjectWithOwnerPaginatedParams) ([]ListResourcesBySubjectWithOwnerPaginatedRow, error)
 	ListS3KeysByResource(ctx context.Context, resourceID int32) ([]string, error)
 	ListStudies(ctx context.Context) ([]Study, error)
+	ListStudiesByUniversity(ctx context.Context, universityID pgtype.Int4) ([]Study, error)
 	ListSubjects(ctx context.Context) ([]Subject, error)
 	ListSubjectsByStudy(ctx context.Context, studyID pgtype.Int4) ([]Subject, error)
 	ListSubjectsByStudyWithPinned(ctx context.Context, arg ListSubjectsByStudyWithPinnedParams) ([]ListSubjectsByStudyWithPinnedRow, error)
+	ListUniversities(ctx context.Context) ([]ListUniversitiesRow, error)
 	PinSubject(ctx context.Context, arg PinSubjectParams) error
 	SearchResources(ctx context.Context, websearchToTsquery string) ([]SearchResourcesRow, error)
+	SearchUniversities(ctx context.Context, websearchToTsquery string) ([]SearchUniversitiesRow, error)
 	UnpinSubject(ctx context.Context, arg UnpinSubjectParams) error
 	UpdateUserStudy(ctx context.Context, arg UpdateUserStudyParams) (User, error)
+	UpdateUserUniversity(ctx context.Context, arg UpdateUserUniversityParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

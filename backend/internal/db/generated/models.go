@@ -35,8 +35,9 @@ type ResourceFile struct {
 }
 
 type Study struct {
-	ID   int32
-	Name string
+	ID           int32
+	Name         string
+	UniversityID pgtype.Int4
 }
 
 type Subject struct {
@@ -46,12 +47,20 @@ type Subject struct {
 	Year    pgtype.Text
 }
 
+type University struct {
+	ID           int32
+	Name         string
+	Domain       string
+	SearchVector interface{}
+}
+
 type User struct {
-	ID        int32
-	StudyID   pgtype.Int4
-	GoogleSub string
-	Email     string
-	Hd        pgtype.Text
-	CreatedAt pgtype.Timestamp
-	Username  string
+	ID           int32
+	StudyID      pgtype.Int4
+	GoogleSub    string
+	Email        string
+	Hd           pgtype.Text
+	CreatedAt    pgtype.Timestamp
+	Username     string
+	UniversityID pgtype.Int4
 }

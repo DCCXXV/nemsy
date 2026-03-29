@@ -67,11 +67,13 @@ SELECT
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email,
     s.id AS subject_id, s.name AS subject_name,
     st.id AS study_id, st.name AS study_name,
+    uni.id AS university_id, uni.name AS university_name,
     ts_rank(r.search_vector, websearch_to_tsquery('spanish', $1)) AS rank
 FROM resources r
 JOIN users u ON r.owner_id = u.id
 JOIN subjects s ON r.subject_id = s.id
 JOIN studies st ON s.study_id = st.id
+LEFT JOIN universities uni ON st.university_id = uni.id
 WHERE r.search_vector @@ websearch_to_tsquery('spanish', $1)
 ORDER BY rank DESC
 LIMIT 20;

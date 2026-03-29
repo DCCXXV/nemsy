@@ -5,6 +5,15 @@ export interface User {
 	hd?: string;
 	studyId?: number;
 	studyName?: string;
+	universityId?: number;
+	universityName?: string;
+	universityDomain?: string;
+}
+
+export interface University {
+	id: number;
+	name: string;
+	domain: string;
 }
 
 export interface Study {
@@ -42,6 +51,10 @@ export interface Resource {
 		name: string;
 	};
 	study?: {
+		id: number;
+		name: string;
+	};
+	university?: {
 		id: number;
 		name: string;
 	};

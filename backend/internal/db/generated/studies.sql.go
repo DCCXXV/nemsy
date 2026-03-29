@@ -7,22 +7,24 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getStudy = `-- name: GetStudy :one
-SELECT id, name FROM studies
+SELECT id, name, university_id FROM studies
 WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetStudy(ctx context.Context, id int32) (Study, error) {
 	row := q.db.QueryRow(ctx, getStudy, id)
 	var i Study
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(&i.ID, &i.Name, &i.UniversityID)
 	return i, err
 }
 
 const listStudies = `-- name: ListStudies :many
-SELECT id, name FROM studies
+SELECT id, name, university_id FROM studies
 ORDER BY name
 `
 
@@ -35,7 +37,33 @@ func (q *Queries) ListStudies(ctx context.Context) ([]Study, error) {
 	var items []Study
 	for rows.Next() {
 		var i Study
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.UniversityID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStudiesByUniversity = `-- name: ListStudiesByUniversity :many
+SELECT id, name, university_id FROM studies
+WHERE university_id = $1
+ORDER BY name
+`
+
+func (q *Queries) ListStudiesByUniversity(ctx context.Context, universityID pgtype.Int4) ([]Study, error) {
+	rows, err := q.db.Query(ctx, listStudiesByUniversity, universityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Study
+	for rows.Next() {
+		var i Study
+		if err := rows.Scan(&i.ID, &i.Name, &i.UniversityID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

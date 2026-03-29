@@ -367,30 +367,34 @@ SELECT
     u.id AS owner_id, u.username AS owner_username, u.email AS owner_email,
     s.id AS subject_id, s.name AS subject_name,
     st.id AS study_id, st.name AS study_name,
+    uni.id AS university_id, uni.name AS university_name,
     ts_rank(r.search_vector, websearch_to_tsquery('spanish', $1)) AS rank
 FROM resources r
 JOIN users u ON r.owner_id = u.id
 JOIN subjects s ON r.subject_id = s.id
 JOIN studies st ON s.study_id = st.id
+LEFT JOIN universities uni ON st.university_id = uni.id
 WHERE r.search_vector @@ websearch_to_tsquery('spanish', $1)
 ORDER BY rank DESC
 LIMIT 20
 `
 
 type SearchResourcesRow struct {
-	ID            int32
-	Title         string
-	Description   pgtype.Text
-	CreatedAt     pgtype.Timestamp
-	DownloadCount int32
-	OwnerID       int32
-	OwnerUsername string
-	OwnerEmail    string
-	SubjectID     int32
-	SubjectName   string
-	StudyID       int32
-	StudyName     string
-	Rank          float32
+	ID             int32
+	Title          string
+	Description    pgtype.Text
+	CreatedAt      pgtype.Timestamp
+	DownloadCount  int32
+	OwnerID        int32
+	OwnerUsername  string
+	OwnerEmail     string
+	SubjectID      int32
+	SubjectName    string
+	StudyID        int32
+	StudyName      string
+	UniversityID   pgtype.Int4
+	UniversityName pgtype.Text
+	Rank           float32
 }
 
 func (q *Queries) SearchResources(ctx context.Context, websearchToTsquery string) ([]SearchResourcesRow, error) {
@@ -415,6 +419,8 @@ func (q *Queries) SearchResources(ctx context.Context, websearchToTsquery string
 			&i.SubjectName,
 			&i.StudyID,
 			&i.StudyName,
+			&i.UniversityID,
+			&i.UniversityName,
 			&i.Rank,
 		); err != nil {
 			return nil, err

@@ -1,32 +1,93 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
-	import { Search } from '@lucide/svelte';
+	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
+	import CheckIcon from 'phosphor-svelte/lib/CheckIcon';
 	import type { LayoutData } from './$types';
-	import type { Study } from '$lib/types';
+	import type { Study, University } from '$lib/types';
 	import { onMount } from 'svelte';
 	import HighlightText from '$lib/components/HighlightText.svelte';
 
 	let { data }: { data: LayoutData } = $props();
 
-	let query = $state('');
+	let uniQuery = $state('');
+	let studyQuery = $state('');
 	let loading = $state(false);
 	let studies = $state<Study[]>([]);
+	let universities = $state<University[]>([]);
 	let errorMsg = $state('');
 	let selectedStudy = $state<Study | null>(null);
+	let selectedUniversity = $state<University | null>(null);
+	let uniResolved = $state(false);
+	let searchingUnis = $state(false);
+	let debounceTimer: ReturnType<typeof setTimeout>;
+	let studySearchInput = $state<HTMLInputElement>();
 
 	onMount(() => {
-		if (data.me?.studyId === null) {
-			loadStudies();
+		if (data.me && data.me.studyId == null) {
+			if (data.me?.universityId && data.me?.universityName) {
+				selectedUniversity = {
+					id: data.me.universityId,
+					name: data.me.universityName,
+					domain: data.me.universityDomain ?? ''
+				};
+				uniResolved = true;
+				loadStudies(data.me.universityId);
+			}
 		}
 	});
 
-	async function loadStudies() {
+	async function searchUniversities() {
+		const q = uniQuery.trim();
+		if (!q) {
+			universities = [];
+			return;
+		}
+		searchingUnis = true;
+		try {
+			const res = await fetch(
+				`${env.PUBLIC_API_BASE_URL}/api/universities/search?q=${encodeURIComponent(q)}`,
+				{ credentials: 'include' }
+			);
+			if (res.ok) {
+				universities = await res.json();
+			}
+		} catch {
+			errorMsg = 'Error buscando universidades';
+		} finally {
+			searchingUnis = false;
+		}
+	}
+
+	function onUniInput() {
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(searchUniversities, 300);
+	}
+
+	async function selectUniversity(uni: University) {
+		selectedUniversity = uni;
+		uniResolved = true;
+		universities = [];
+		uniQuery = '';
+
+		await fetch(`${env.PUBLIC_API_BASE_URL}/api/me/university`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ universityId: uni.id })
+		});
+
+		await loadStudies(uni.id);
+		setTimeout(() => studySearchInput?.focus(), 50);
+	}
+
+	async function loadStudies(universityId: number) {
 		loading = true;
 		errorMsg = '';
 		try {
-			const response = await fetch(`${env.PUBLIC_API_BASE_URL}/api/studies`, {
-				credentials: 'include'
-			});
+			const response = await fetch(
+				`${env.PUBLIC_API_BASE_URL}/api/universities/${universityId}/studies`,
+				{ credentials: 'include' }
+			);
 			if (response.ok) {
 				studies = await response.json();
 			} else {
@@ -40,12 +101,18 @@
 	}
 
 	let filteredStudies = $derived(
-		studies.filter((study) => study.name?.toLowerCase().includes(query.toLocaleLowerCase()))
+		studies.filter((study) => study.name?.toLowerCase().includes(studyQuery.toLowerCase()))
 	);
 
 	function selectStudy(study: Study) {
 		selectedStudy = study;
-		console.log('Selected study:', study);
+	}
+
+	function changeUniversity() {
+		selectedUniversity = null;
+		uniResolved = false;
+		selectedStudy = null;
+		studies = [];
 	}
 
 	async function finish(study: Study | null) {
@@ -55,9 +122,7 @@
 			try {
 				const response = await fetch(`${env.PUBLIC_API_BASE_URL}/api/me/study`, {
 					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json'
-					},
+					headers: { 'Content-Type': 'application/json' },
 					credentials: 'include',
 					body: JSON.stringify({ studyId: study.id })
 				});
@@ -75,82 +140,118 @@
 </script>
 
 <div class="lg:mx-20 w-full h-full flex flex-col relative">
-	{#if data.me?.studyId === null}
-		{#if data.me?.hd === null}
-			<p class="text-xl">
-				No hemos podido detectar tu universidad a partir de tu correo (<em>{data.me?.email}</em>).
-				Por el momento solo esta disponible la UCM.
-			</p>
-			<div
-				class="rounded-none bg-zinc-200 my-4 p-2 flex border-2 border-zinc-900 gap-4 items-center"
-			>
-				<img
-					src="https://logo.clearbit.com/{data.me?.hd}"
-					alt="Logo de {data.me?.hd}"
-					class="rounded-none"
+	{#if data.me && data.me.studyId == null}
+		{#if !uniResolved}
+			{#if !data.me.universityId}
+				<p class="bg-violet-100 border-violet-700 text-violet-700 pl-4 py-2 mb-4">
+					<span class="font-medium">@{data.me.email.split('@')[1]}</span> no está registrado como un correo
+					educacional, por lo tanto no hemos podido preseleccionar su universidad.
+				</p>
+			{/if}
+			<p class="text-xl text-zinc-700 mb-2">Selecciona tu universidad:</p>
+			<div class="w-full flex border border-zinc-300 bg-zinc-50 mb-4 items-center">
+				<MagnifyingGlassIcon class="mx-2 size-5 text-zinc-400" />
+				<input
+					type="search"
+					class="grow border-0 focus:outline-none focus:ring-0 bg-zinc-50 py-2"
+					placeholder="Buscar universidad..."
+					spellcheck="false"
+					bind:value={uniQuery}
+					oninput={onUniInput}
 				/>
-				<h1 class="text-xl">Universidad Complutense de Madrid</h1>
 			</div>
+			{#if searchingUnis}
+				<p class="text-center text-zinc-500">Buscando...</p>
+			{:else if universities.length > 0}
+				<div class="bg-zinc-50 border border-zinc-300 overflow-auto max-h-1/2">
+					{#each universities as uni (uni.id)}
+						<button
+							onclick={() => selectUniversity(uni)}
+							class="w-full text-left p-2 hover:cursor-pointer transition-colors bg-zinc-50 hover:bg-zinc-100 border-b border-zinc-200 last:border-b-0"
+						>
+							<h3 class="text-lg text-zinc-800">{uni.name}</h3>
+							<span class="text-sm text-zinc-500">{uni.domain}</span>
+						</button>
+					{/each}
+				</div>
+			{:else if uniQuery.trim().length > 0}
+				<p class="text-zinc-500">No se encontraron universidades.</p>
+			{/if}
 		{:else}
-			<p class="text-xl">Hemos detectado que tu universidad es:</p>
-			<div
-				class="rounded-none bg-zinc-200 my-4 p-2 flex border-2 border-zinc-500 gap-4 items-center"
-			>
+			{#if data.me?.universityId}
+				<p class="text-xl text-zinc-700">Hemos detectado que tu universidad es:</p>
+			{/if}
+			<div class="bg-zinc-50 my-4 p-2 flex border border-zinc-300 gap-4 items-center">
 				<img
-					src="https://logo.clearbit.com/{data.me?.hd}"
-					alt="Logo de {data.me?.hd}"
-					class="rounded-none"
+					src="https://www.google.com/s2/favicons?domain={selectedUniversity?.domain}&sz=64"
+					alt="Logo"
+					class="border border-zinc-300"
 				/>
-				<!-- TODO: JetBrains SWOT -->
-				<h1 class="text-xl">Universidad Complutense de Madrid</h1>
+				<h1 class="text-xl flex-1 text-zinc-800">{selectedUniversity?.name}</h1>
+				<button
+					onclick={changeUniversity}
+					class="text-sm text-zinc-500 hover:text-zinc-700 underline cursor-pointer"
+				>
+					Cambiar
+				</button>
+			</div>
+
+			<p class="text-xl text-zinc-700">Selecciona tu grado:</p>
+			<div class="w-full flex border border-zinc-300 bg-zinc-50 mb-6 mt-2 items-center">
+				<MagnifyingGlassIcon class="mx-2 size-5 text-zinc-400" />
+				<input
+					type="search"
+					class="grow border-0 focus:outline-none focus:ring-0 bg-zinc-50 py-2"
+					placeholder="Buscar grado"
+					spellcheck="false"
+					bind:value={studyQuery}
+					bind:this={studySearchInput}
+				/>
+			</div>
+			{#if loading}
+				<p class="text-center text-zinc-500">Cargando grados...</p>
+			{:else if filteredStudies.length > 0}
+				<div class="mb-6 bg-zinc-50 border border-zinc-300 overflow-auto max-h-1/2">
+					{#each filteredStudies as study (study.id)}
+						<button
+							onclick={() => selectStudy(study)}
+							class={`w-full text-left p-2 hover:cursor-pointer transition-colors border-b border-zinc-200 last:border-b-0 ${
+								selectedStudy?.name == study.name
+									? 'bg-zinc-200 hover:bg-zinc-300'
+									: 'bg-zinc-50 hover:bg-zinc-100'
+							}`}
+						>
+							<div class="flex items-center justify-between gap-2">
+								<h3 class="text-lg">
+									<HighlightText text={study.name} query={studyQuery} />
+								</h3>
+								{#if selectedStudy?.id === study.id}
+									<CheckIcon class="size-5 text-zinc-500 shrink-0" />
+								{/if}
+							</div>
+						</button>
+					{/each}
+				</div>
+			{:else if !loading && studies.length === 0}
+				<p class="bg-orange-100 border-orange-700 text-orange-700 pl-4 py-2">
+					Por el momento solo se soporta la Universidad Complutense de Madrid. Estamos trabajando
+					para añadir más universidades próximamente.
+				</p>
+			{/if}
+			{#if errorMsg}
+				<p class="bg-rose-100 border-rose-700 text-rose-700 pl-4 py-2 mb-6">
+					{errorMsg}
+				</p>
+			{/if}
+			<div class="w-full text-right absolute bottom-0 ml-auto">
+				<button
+					onclick={() => finish(selectedStudy)}
+					class="h-10 px-10 py-2 bg-violet-200 text-violet-900 hover:bg-violet-100 border border-zinc-300 transition-colors inline-flex items-center cursor-pointer text-lg"
+				>
+					Terminar
+				</button>
 			</div>
 		{/if}
-		<p class="text-xl">Para continuar, selecciona tu grado:</p>
-		<div class="w-full flex rounded-none border-2 border-zinc-900 mb-6 mt-2 items-center">
-			<Search class="mx-2" />
-			<input
-				type="search"
-				class="grow border-0 focus:outline-none focus:ring-0 bg-zinc-100"
-				placeholder="Buscar grado"
-				spellcheck="false"
-				bind:value={query}
-			/>
-		</div>
-		{#if loading}
-			<!-- skeleton later -->
-			<p class="text-center text-zinc-600">Cargando grados...</p>
-		{:else if filteredStudies.length > 0}
-			<div class="mb-6 bg-zinc-100 border-zinc-900 border-2 rounded-none overflow-auto max-h-1/2">
-				{#each filteredStudies as study (study.id)}
-					<button
-						onclick={() => selectStudy(study)}
-						class={`w-full text-left p-2 hover:cursor-pointer transition-colors ${
-							selectedStudy?.name == study.name
-								? 'bg-zinc-200 hover:bg-zinc-300 border-zinc-500'
-								: 'bg-zinc-100 hover:bg-zinc-200 border-zinc-100'
-						} ${filteredStudies.length == 1 ? 'border-0' : 'border-y-2'}
-						}`}
-					>
-						<h3 class="text-lg text-nowrap">
-							<HighlightText text={study.name} {query} />
-						</h3>
-					</button>
-				{/each}
-			</div>
-			<p
-				class={`bg-rose-200 border-l-4 border-rose-900 pl-4 py-2 mb-6 rounded-none ${errorMsg == '' ? 'invisible' : ''}`}
-			>
-				{errorMsg}
-			</p>
-		{/if}
-		<div class="w-full text-right absolute bottom-0 ml-auto">
-			<button
-				onclick={() => finish(selectedStudy)}
-				class="h-10 px-10 py-2 bg-orange-300 hover:brightness-90 border-zinc-900 border-2 rounded-none transition-colors inline-flex items-center cursor-pointer text-lg"
-			>
-				Terminar
-			</button>
-		</div>
 	{:else}
 		<div class="my-auto">
 			<h1 class="text-4xl text-zinc-700 select-none flex items-center mb-6">
@@ -160,7 +261,7 @@
 					class="size-8 ml-6 mr-2"
 				/><span class="text-zinc-700">nemsy</span>
 			</h1>
-			<p class="bg-red-50 border-l text-red-700 border-red-700 pl-4 py-2 rounded-none">
+			<p class="bg-orange-100 border-orange-700 text-orange-700 pl-4 py-2">
 				Si es tu primer acceso te recomendamos usar tu correo institucional (ej: usuario@ucm.es), en
 				caso de disponer de él, para facilitar el proceso de <i>onboarding</i>.
 			</p>
@@ -190,6 +291,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-</style>

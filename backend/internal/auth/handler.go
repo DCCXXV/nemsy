@@ -38,7 +38,6 @@ type UserInfo struct {
 	Hd        string
 }
 
-
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
@@ -96,6 +95,15 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	user, err = h.Queries.GetUserByEmail(r.Context(), userInfo.Email)
 	if err == pgx.ErrNoRows {
 		log.Println("User not found, creating new user:", userInfo.Email)
+
+		var universityID pgtype.Int4
+		if userInfo.Hd != "" {
+			uni, uniErr := h.Queries.GetUniversityByDomain(r.Context(), userInfo.Hd)
+			if uniErr == nil {
+				universityID = pgtype.Int4{Int32: uni.ID, Valid: true}
+			}
+		}
+
 		base := strings.Split(userInfo.Email, "@")[0]
 		for i := 0; i <= 100; i++ {
 			username := base
@@ -103,11 +111,12 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 				username = fmt.Sprintf("%s%d", base, i)
 			}
 			user, err = h.Queries.CreateUser(r.Context(), db.CreateUserParams{
-				GoogleSub: userInfo.GoogleSub,
-				StudyID:   pgtype.Int4{Valid: false},
-				Email:     userInfo.Email,
-				Username:  username,
-				Hd:        stringToPgText(userInfo.Hd),
+				GoogleSub:    userInfo.GoogleSub,
+				StudyID:      pgtype.Int4{Valid: false},
+				Email:        userInfo.Email,
+				Username:     username,
+				Hd:           stringToPgText(userInfo.Hd),
+				UniversityID: universityID,
 			})
 			if err == nil {
 				break

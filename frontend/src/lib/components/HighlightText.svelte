@@ -3,12 +3,13 @@
 
 	const parts = $derived(
 		(() => {
-			if (!query || !query.trim()) {
+			const trimmed = query?.trim();
+			if (!trimmed) {
 				return [{ text, highlight: false }];
 			}
 
 			const lowerText = text.toLowerCase();
-			const lowerQuery = query.toLowerCase();
+			const lowerQuery = trimmed.toLowerCase();
 
 			const index = lowerText.indexOf(lowerQuery);
 
@@ -18,8 +19,8 @@
 
 			return [
 				{ text: text.slice(0, index), highlight: false },
-				{ text: text.slice(index, index + query.length), highlight: true },
-				{ text: text.slice(index + query.length), highlight: false }
+				{ text: text.slice(index, index + trimmed.length), highlight: true },
+				{ text: text.slice(index + trimmed.length), highlight: false }
 			];
 		})()
 	);

@@ -13,18 +13,19 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
-    google_sub, study_id, email, username, hd) VALUES (
-    $1, $2, $3, $4, $5
+    google_sub, study_id, email, username, hd, university_id) VALUES (
+    $1, $2, $3, $4, $5, $6
 )
-RETURNING id, study_id, google_sub, email, hd, created_at, username
+RETURNING id, study_id, google_sub, email, hd, created_at, username, university_id
 `
 
 type CreateUserParams struct {
-	GoogleSub string
-	StudyID   pgtype.Int4
-	Email     string
-	Username  string
-	Hd        pgtype.Text
+	GoogleSub    string
+	StudyID      pgtype.Int4
+	Email        string
+	Username     string
+	Hd           pgtype.Text
+	UniversityID pgtype.Int4
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -34,6 +35,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Email,
 		arg.Username,
 		arg.Hd,
+		arg.UniversityID,
 	)
 	var i User
 	err := row.Scan(
@@ -44,12 +46,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Hd,
 		&i.CreatedAt,
 		&i.Username,
+		&i.UniversityID,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, study_id, google_sub, email, hd, created_at, username FROM users
+SELECT id, study_id, google_sub, email, hd, created_at, username, university_id FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -64,12 +67,13 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 		&i.Hd,
 		&i.CreatedAt,
 		&i.Username,
+		&i.UniversityID,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, study_id, google_sub, email, hd, created_at, username FROM users
+SELECT id, study_id, google_sub, email, hd, created_at, username, university_id FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -84,12 +88,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Hd,
 		&i.CreatedAt,
 		&i.Username,
+		&i.UniversityID,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, study_id, google_sub, email, hd, created_at, username FROM users
+SELECT id, study_id, google_sub, email, hd, created_at, username, university_id FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -104,30 +109,39 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Hd,
 		&i.CreatedAt,
 		&i.Username,
+		&i.UniversityID,
 	)
 	return i, err
 }
 
 const getUserWithStudy = `-- name: GetUserWithStudy :one
 SELECT
-    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username,
+    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username, u.university_id,
     s.id AS study_id_fk,
-    s.name AS study_name
+    s.name AS study_name,
+    uni.id AS university_id_fk,
+    uni.name AS university_name,
+    uni.domain AS university_domain
 FROM users u
 LEFT JOIN studies s ON u.study_id = s.id
+LEFT JOIN universities uni ON u.university_id = uni.id
 WHERE u.id = $1 LIMIT 1
 `
 
 type GetUserWithStudyRow struct {
-	ID        int32
-	StudyID   pgtype.Int4
-	GoogleSub string
-	Email     string
-	Hd        pgtype.Text
-	CreatedAt pgtype.Timestamp
-	Username  string
-	StudyIDFk pgtype.Int4
-	StudyName pgtype.Text
+	ID               int32
+	StudyID          pgtype.Int4
+	GoogleSub        string
+	Email            string
+	Hd               pgtype.Text
+	CreatedAt        pgtype.Timestamp
+	Username         string
+	UniversityID     pgtype.Int4
+	StudyIDFk        pgtype.Int4
+	StudyName        pgtype.Text
+	UniversityIDFk   pgtype.Int4
+	UniversityName   pgtype.Text
+	UniversityDomain pgtype.Text
 }
 
 func (q *Queries) GetUserWithStudy(ctx context.Context, id int32) (GetUserWithStudyRow, error) {
@@ -141,32 +155,44 @@ func (q *Queries) GetUserWithStudy(ctx context.Context, id int32) (GetUserWithSt
 		&i.Hd,
 		&i.CreatedAt,
 		&i.Username,
+		&i.UniversityID,
 		&i.StudyIDFk,
 		&i.StudyName,
+		&i.UniversityIDFk,
+		&i.UniversityName,
+		&i.UniversityDomain,
 	)
 	return i, err
 }
 
 const getUserWithStudyByEmail = `-- name: GetUserWithStudyByEmail :one
 SELECT
-    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username,
+    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username, u.university_id,
     s.id AS study_id_fk,
-    s.name AS study_name
+    s.name AS study_name,
+    uni.id AS university_id_fk,
+    uni.name AS university_name,
+    uni.domain AS university_domain
 FROM users u
 LEFT JOIN studies s ON u.study_id = s.id
+LEFT JOIN universities uni ON u.university_id = uni.id
 WHERE u.email = $1 LIMIT 1
 `
 
 type GetUserWithStudyByEmailRow struct {
-	ID        int32
-	StudyID   pgtype.Int4
-	GoogleSub string
-	Email     string
-	Hd        pgtype.Text
-	CreatedAt pgtype.Timestamp
-	Username  string
-	StudyIDFk pgtype.Int4
-	StudyName pgtype.Text
+	ID               int32
+	StudyID          pgtype.Int4
+	GoogleSub        string
+	Email            string
+	Hd               pgtype.Text
+	CreatedAt        pgtype.Timestamp
+	Username         string
+	UniversityID     pgtype.Int4
+	StudyIDFk        pgtype.Int4
+	StudyName        pgtype.Text
+	UniversityIDFk   pgtype.Int4
+	UniversityName   pgtype.Text
+	UniversityDomain pgtype.Text
 }
 
 func (q *Queries) GetUserWithStudyByEmail(ctx context.Context, email string) (GetUserWithStudyByEmailRow, error) {
@@ -180,32 +206,44 @@ func (q *Queries) GetUserWithStudyByEmail(ctx context.Context, email string) (Ge
 		&i.Hd,
 		&i.CreatedAt,
 		&i.Username,
+		&i.UniversityID,
 		&i.StudyIDFk,
 		&i.StudyName,
+		&i.UniversityIDFk,
+		&i.UniversityName,
+		&i.UniversityDomain,
 	)
 	return i, err
 }
 
 const getUserWithStudyByUsername = `-- name: GetUserWithStudyByUsername :one
 SELECT
-    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username,
+    u.id, u.study_id, u.google_sub, u.email, u.hd, u.created_at, u.username, u.university_id,
     s.id AS study_id_fk,
-    s.name AS study_name
+    s.name AS study_name,
+    uni.id AS university_id_fk,
+    uni.name AS university_name,
+    uni.domain AS university_domain
 FROM users u
 LEFT JOIN studies s ON u.study_id = s.id
+LEFT JOIN universities uni ON u.university_id = uni.id
 WHERE u.username = $1 LIMIT 1
 `
 
 type GetUserWithStudyByUsernameRow struct {
-	ID        int32
-	StudyID   pgtype.Int4
-	GoogleSub string
-	Email     string
-	Hd        pgtype.Text
-	CreatedAt pgtype.Timestamp
-	Username  string
-	StudyIDFk pgtype.Int4
-	StudyName pgtype.Text
+	ID               int32
+	StudyID          pgtype.Int4
+	GoogleSub        string
+	Email            string
+	Hd               pgtype.Text
+	CreatedAt        pgtype.Timestamp
+	Username         string
+	UniversityID     pgtype.Int4
+	StudyIDFk        pgtype.Int4
+	StudyName        pgtype.Text
+	UniversityIDFk   pgtype.Int4
+	UniversityName   pgtype.Text
+	UniversityDomain pgtype.Text
 }
 
 func (q *Queries) GetUserWithStudyByUsername(ctx context.Context, username string) (GetUserWithStudyByUsernameRow, error) {
@@ -219,8 +257,12 @@ func (q *Queries) GetUserWithStudyByUsername(ctx context.Context, username strin
 		&i.Hd,
 		&i.CreatedAt,
 		&i.Username,
+		&i.UniversityID,
 		&i.StudyIDFk,
 		&i.StudyName,
+		&i.UniversityIDFk,
+		&i.UniversityName,
+		&i.UniversityDomain,
 	)
 	return i, err
 }
@@ -229,7 +271,7 @@ const updateUserStudy = `-- name: UpdateUserStudy :one
 UPDATE users
 SET study_id = $2
 WHERE id = $1
-RETURNING id, study_id, google_sub, email, hd, created_at, username
+RETURNING id, study_id, google_sub, email, hd, created_at, username, university_id
 `
 
 type UpdateUserStudyParams struct {
@@ -248,6 +290,35 @@ func (q *Queries) UpdateUserStudy(ctx context.Context, arg UpdateUserStudyParams
 		&i.Hd,
 		&i.CreatedAt,
 		&i.Username,
+		&i.UniversityID,
+	)
+	return i, err
+}
+
+const updateUserUniversity = `-- name: UpdateUserUniversity :one
+UPDATE users
+SET university_id = $2
+WHERE id = $1
+RETURNING id, study_id, google_sub, email, hd, created_at, username, university_id
+`
+
+type UpdateUserUniversityParams struct {
+	ID           int32
+	UniversityID pgtype.Int4
+}
+
+func (q *Queries) UpdateUserUniversity(ctx context.Context, arg UpdateUserUniversityParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserUniversity, arg.ID, arg.UniversityID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.StudyID,
+		&i.GoogleSub,
+		&i.Email,
+		&i.Hd,
+		&i.CreatedAt,
+		&i.Username,
+		&i.UniversityID,
 	)
 	return i, err
 }
