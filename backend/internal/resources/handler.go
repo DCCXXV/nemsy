@@ -16,6 +16,7 @@ import (
 	"github.com/DCCXXV/Nemsy/backend/internal/app"
 	"github.com/DCCXXV/Nemsy/backend/internal/auth"
 	db "github.com/DCCXXV/Nemsy/backend/internal/db/generated"
+	"github.com/DCCXXV/Nemsy/backend/internal/search"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -558,14 +559,15 @@ func buildResourceResponse(res db.GetResourceWithOwnerRow, files []db.ResourceFi
 }
 
 func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("q")
-	if query == "" {
+	raw := r.URL.Query().Get("q")
+	tsQuery := search.PrefixQuery(raw)
+	if tsQuery == "" {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]ResourceResponse{})
 		return
 	}
 
-	results, err := h.app.Queries.SearchResources(r.Context(), query)
+	results, err := h.app.Queries.SearchResources(r.Context(), tsQuery)
 	if err != nil {
 		log.Printf("Failed to search resources: %v", err)
 		http.Error(w, "database error", http.StatusInternalServerError)

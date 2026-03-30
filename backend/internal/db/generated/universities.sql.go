@@ -78,8 +78,8 @@ func (q *Queries) ListUniversities(ctx context.Context) ([]ListUniversitiesRow, 
 const searchUniversities = `-- name: SearchUniversities :many
 SELECT id, name, domain
 FROM universities
-WHERE search_vector @@ websearch_to_tsquery('simple', $1)
-ORDER BY ts_rank(search_vector, websearch_to_tsquery('simple', $1)) DESC
+WHERE search_vector @@ to_tsquery('simple', $1)
+ORDER BY ts_rank(search_vector, to_tsquery('simple', $1)) DESC
 LIMIT 20
 `
 
@@ -89,8 +89,8 @@ type SearchUniversitiesRow struct {
 	Domain string
 }
 
-func (q *Queries) SearchUniversities(ctx context.Context, websearchToTsquery string) ([]SearchUniversitiesRow, error) {
-	rows, err := q.db.Query(ctx, searchUniversities, websearchToTsquery)
+func (q *Queries) SearchUniversities(ctx context.Context, toTsquery string) ([]SearchUniversitiesRow, error) {
+	rows, err := q.db.Query(ctx, searchUniversities, toTsquery)
 	if err != nil {
 		return nil, err
 	}

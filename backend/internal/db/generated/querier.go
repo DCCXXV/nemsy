@@ -45,8 +45,8 @@ type Querier interface {
 	ListSubjectsByStudyWithPinned(ctx context.Context, arg ListSubjectsByStudyWithPinnedParams) ([]ListSubjectsByStudyWithPinnedRow, error)
 	ListUniversities(ctx context.Context) ([]ListUniversitiesRow, error)
 	PinSubject(ctx context.Context, arg PinSubjectParams) error
-	SearchResources(ctx context.Context, websearchToTsquery string) ([]SearchResourcesRow, error)
-	SearchUniversities(ctx context.Context, websearchToTsquery string) ([]SearchUniversitiesRow, error)
+	SearchResources(ctx context.Context, toTsquery string) ([]SearchResourcesRow, error)
+	SearchUniversities(ctx context.Context, toTsquery string) ([]SearchUniversitiesRow, error)
 	UnpinSubject(ctx context.Context, arg UnpinSubjectParams) error
 	UpdateUserStudy(ctx context.Context, arg UpdateUserStudyParams) (User, error)
 	UpdateUserUniversity(ctx context.Context, arg UpdateUserUniversityParams) (User, error)

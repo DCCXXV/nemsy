@@ -17,6 +17,7 @@
 	import SmileyNervousIcon from 'phosphor-svelte/lib/SmileyNervousIcon';
 	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
 
+	import { flip } from 'svelte/animate';
 	import PdfThumbnail from '$lib/components/PdfThumbnail.svelte';
 	import MarkdownViewer from '$lib/components/MarkdownViewer.svelte';
 	import ResourceView from '$lib/components/ResourceView.svelte';
@@ -161,9 +162,10 @@
 		</div>
 	{:else}
 		{#each filteredResources as resource (resource.id)}
+			<div animate:flip={{ duration: 300 }} class="border-b border-zinc-200 last:border-b-0">
 			<Dialog.Root>
 				<Dialog.Trigger
-					class="border-b last:border-b-0 p-2 border-zinc-200 hover:bg-zinc-100 w-full text-left cursor-pointer"
+					class="p-2 hover:bg-zinc-100 w-full text-left cursor-pointer"
 				>
 					{#if compactMode}
 						{#if showSubject && resource.subject}
@@ -353,6 +355,7 @@
 					</Dialog.Content>
 				</Dialog.Portal>
 			</Dialog.Root>
+			</div>
 		{/each}
 	{/if}
 {/if}

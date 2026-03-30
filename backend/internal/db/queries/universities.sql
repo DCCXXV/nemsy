@@ -9,8 +9,8 @@ WHERE id = $1 LIMIT 1;
 -- name: SearchUniversities :many
 SELECT id, name, domain
 FROM universities
-WHERE search_vector @@ websearch_to_tsquery('simple', $1)
-ORDER BY ts_rank(search_vector, websearch_to_tsquery('simple', $1)) DESC
+WHERE search_vector @@ to_tsquery('simple', $1)
+ORDER BY ts_rank(search_vector, to_tsquery('simple', $1)) DESC
 LIMIT 20;
 
 -- name: ListUniversities :many

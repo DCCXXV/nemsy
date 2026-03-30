@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/DCCXXV/Nemsy/backend/internal/app"
+	"github.com/DCCXXV/Nemsy/backend/internal/search"
 )
 
 type Handler struct {
@@ -23,8 +24,9 @@ type UniversityResponse struct {
 }
 
 func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("q")
-	if query == "" {
+	raw := r.URL.Query().Get("q")
+	tsQuery := search.PrefixQuery(raw)
+	if tsQuery == "" {
 		unis, err := h.app.Queries.ListUniversities(r.Context())
 		if err != nil {
 			log.Printf("Error listing universities: %v", err)
@@ -40,7 +42,7 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	unis, err := h.app.Queries.SearchUniversities(r.Context(), query)
+	unis, err := h.app.Queries.SearchUniversities(r.Context(), tsQuery)
 	if err != nil {
 		log.Printf("Error searching universities: %v", err)
 		http.Error(w, "database error", http.StatusInternalServerError)
