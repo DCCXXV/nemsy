@@ -376,8 +376,14 @@ JOIN studies st ON s.study_id = st.id
 LEFT JOIN universities uni ON st.university_id = uni.id
 WHERE r.search_vector @@ to_tsquery('spanish', $1)
 ORDER BY rank DESC
-LIMIT 20
+LIMIT $2 OFFSET $3
 `
+
+type SearchResourcesParams struct {
+	ToTsquery string
+	Limit     int32
+	Offset    int32
+}
 
 type SearchResourcesRow struct {
 	ID             int32
@@ -397,8 +403,8 @@ type SearchResourcesRow struct {
 	Rank           float32
 }
 
-func (q *Queries) SearchResources(ctx context.Context, toTsquery string) ([]SearchResourcesRow, error) {
-	rows, err := q.db.Query(ctx, searchResources, toTsquery)
+func (q *Queries) SearchResources(ctx context.Context, arg SearchResourcesParams) ([]SearchResourcesRow, error) {
+	rows, err := q.db.Query(ctx, searchResources, arg.ToTsquery, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

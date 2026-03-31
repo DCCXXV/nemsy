@@ -76,7 +76,7 @@ JOIN studies st ON s.study_id = st.id
 LEFT JOIN universities uni ON st.university_id = uni.id
 WHERE r.search_vector @@ to_tsquery('spanish', $1)
 ORDER BY rank DESC
-LIMIT 20;
+LIMIT $2 OFFSET $3;
 
 -- name: DeleteResource :exec
 DELETE FROM resources WHERE id = $1 AND owner_id = $2;

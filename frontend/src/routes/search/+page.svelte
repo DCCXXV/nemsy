@@ -3,7 +3,7 @@
 	import type { Resource } from '$lib/types';
 	import { Dialog } from 'bits-ui';
 	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
-	import SpinnerIcon from 'phosphor-svelte/lib/SpinnerIcon';
+	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
 	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
 	import FolderIcon from 'phosphor-svelte/lib/FolderIcon';
 	import FilePdfIcon from 'phosphor-svelte/lib/FilePdfIcon';
@@ -30,42 +30,83 @@
 		return ext === 'md' || ext === 'markdown';
 	}
 
+	import { onMount, onDestroy } from 'svelte';
+
 	let query = $state('');
 	let results = $state<Resource[]>([]);
 	let loading = $state(false);
+	let loadingMore = $state(false);
 	let searched = $state(false);
+	let hasMore = $state(false);
 	let debounceTimer: ReturnType<typeof setTimeout>;
+	let sentinel = $state<HTMLElement>();
+	let observer: IntersectionObserver;
 
-	async function search() {
+	const PAGE_SIZE = 50;
+
+	async function search(append = false) {
 		const q = query.trim();
 		if (!q) {
 			results = [];
 			searched = false;
+			hasMore = false;
 			return;
 		}
 
-		loading = true;
-		searched = true;
+		if (append) {
+			loadingMore = true;
+		} else {
+			loading = true;
+			searched = true;
+		}
 
 		try {
+			const offset = append ? results.length : 0;
 			const res = await fetch(
-				`${PUBLIC_API_BASE_URL}/api/resources/search?q=${encodeURIComponent(q)}`,
+				`${PUBLIC_API_BASE_URL}/api/resources/search?q=${encodeURIComponent(q)}&offset=${offset}`,
 				{ credentials: 'include' }
 			);
 			if (res.ok) {
-				results = await res.json();
+				const data: Resource[] = await res.json();
+				if (append) {
+					results = [...results, ...data];
+				} else {
+					results = data;
+				}
+				hasMore = data.length >= PAGE_SIZE;
 			}
 		} catch (err) {
 			console.error('Search error:', err);
 		} finally {
 			loading = false;
+			loadingMore = false;
 		}
 	}
 
 	function onInput() {
 		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(search, 300);
+		debounceTimer = setTimeout(() => search(false), 300);
 	}
+
+	onMount(() => {
+		observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+					search(true);
+				}
+			},
+			{ rootMargin: '200px' }
+		);
+	});
+
+	onDestroy(() => observer?.disconnect());
+
+	$effect(() => {
+		if (sentinel) {
+			observer?.observe(sentinel);
+			return () => observer?.unobserve(sentinel!);
+		}
+	});
 </script>
 
 <div class="bg-zinc-100 min-h-screen flex flex-col items-center px-4 relative overflow-hidden">
@@ -102,7 +143,7 @@
 
 		{#if loading}
 			<div class="flex justify-center mt-12">
-				<SpinnerIcon class="size-10 text-zinc-400 animate-spin" />
+				<CircleNotchIcon class="size-5 text-zinc-400 animate-spin" />
 			</div>
 		{:else if searched && results.length === 0}
 			<p class="text-zinc-500 text-center mt-12">No se encontraron resultados.</p>
@@ -184,6 +225,13 @@
 					</Dialog.Root>
 				{/each}
 			</div>
+			{#if hasMore}
+				<div bind:this={sentinel} class="flex justify-center py-6">
+					{#if loadingMore}
+						<CircleNotchIcon class="size-5 text-zinc-400 animate-spin" />
+					{/if}
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>

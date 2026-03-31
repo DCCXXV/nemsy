@@ -567,7 +567,18 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results, err := h.app.Queries.SearchResources(r.Context(), tsQuery)
+	var offset int32
+	if o := r.URL.Query().Get("offset"); o != "" {
+		if v, err := strconv.Atoi(o); err == nil && v > 0 {
+			offset = int32(v)
+		}
+	}
+
+	results, err := h.app.Queries.SearchResources(r.Context(), db.SearchResourcesParams{
+		ToTsquery: tsQuery,
+		Limit:     50,
+		Offset:    offset,
+	})
 	if err != nil {
 		log.Printf("Failed to search resources: %v", err)
 		http.Error(w, "database error", http.StatusInternalServerError)

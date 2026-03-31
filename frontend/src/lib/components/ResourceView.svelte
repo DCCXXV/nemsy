@@ -52,7 +52,7 @@
 			<ResourceMenu
 				resourceId={resource.id}
 				isOwner={resource.owner?.id === currentUserId}
-				ondelete={ondelete}
+				{ondelete}
 			/>
 			<Dialog.Close
 				class="p-1.5 text-red-600 bg-red-100 hover:text-red-700 hover:bg-red-200 cursor-pointer"
