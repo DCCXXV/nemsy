@@ -638,6 +638,42 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func (h *Handler) Report(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(auth.CtxUserID).(int32)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Reason == "" {
+		http.Error(w, "reason is required", http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.app.Queries.CreateReport(r.Context(), db.CreateReportParams{
+		ResourceID: int32(id),
+		ReporterID: userID,
+		Reason:     req.Reason,
+	})
+	if err != nil {
+		log.Printf("Failed to create report for resource %d: %v", id, err)
+		http.Error(w, "failed to create report", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
 func sanitizeFilename(name string) string {
 	name = filepath.Base(name)
 	name = strings.ReplaceAll(name, " ", "_")

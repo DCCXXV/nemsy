@@ -48,12 +48,13 @@ func GenerateJWT(userInfo UserInfo, secret []byte) (string, error) {
 	return token.SignedString(secret)
 }
 
-func GenerateJWTWithUserID(info UserInfo, userID int, secret []byte) (string, error) {
+func GenerateJWTWithUserID(info UserInfo, userID int, role string, secret []byte) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":     info.GoogleSub,
 		"email":   info.Email,
 		"hd":      info.Hd,
 		"user_id": userID,
+		"role":    role,
 		"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

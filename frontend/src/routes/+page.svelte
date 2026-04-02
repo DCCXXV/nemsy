@@ -11,9 +11,10 @@
 	import { Tooltip } from 'melt/components';
 
 	import PushPinIcon from 'phosphor-svelte/lib/PushPinIcon';
-	import PencilRulerIcon from 'phosphor-svelte/lib/PencilRulerIcon';
+
 	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 	import ResourceList from '$lib/components/ResourceList.svelte';
+	import screenshotImg from '$lib/assets/images/screenshot.png';
 
 	let { data }: { data: PageData } = $props();
 
@@ -138,7 +139,9 @@
 						class="group px-2 py-1 w-full flex justify-between items-center text-zinc-700 bg-zinc-100 cursor-pointer data-[state=open]:border-b data-[state=open]:border-zinc-300"
 					>
 						<p class="text-lg">Asignaturas</p>
-						<CaretDownIcon class="size-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+						<CaretDownIcon
+							class="size-4 transition-transform duration-200 group-data-[state=open]:rotate-180"
+						/>
 					</Collapsible.Trigger>
 					<Collapsible.Content>
 						<div class="p-2 flex gap-4 items-center">
@@ -253,58 +256,88 @@
 				</div>
 			</div>
 			<div
-				class="hidden md:flex text-zinc-400 bg-zinc-50 border border-zinc-300 rounded-none w-1/4 mr-4 min-h-136 sticky top-4 flex-col items-center"
-			>
-				<div class="m-auto aspect-square text-center p-2">
-					<PencilRulerIcon weight="thin" class="size-14 mx-auto" />
-					<h3>WIP</h3>
-				</div>
-			</div>
+				class="hidden md:flex bg-zinc-100 rounded-none w-1/4 mr-4 min-h-136 sticky top-4 flex-col items-center"
+			></div>
 		</div>
 	</div>
 {:else}
-	<div class="relative min-h-screen bg-zinc-200 flex justify-center items-center">
-		<div class="absolute inset-x-0 top-0 h-[calc(3/7*100vh)] bg-zinc-100 z-0"></div>
+	<div class="bg-zinc-200">
+		<div class="bg-zinc-100 pt-6 pb-24 px-4">
+			<div class="max-w-4xl mx-auto text-center">
+				<h1 class="text-6xl text-zinc-700 mb-4">nemsy</h1>
+				<p class="text-xl text-zinc-500 max-w-xl mx-auto">
+					Comparte y accede a <mark class="bg-red-200 text-red-900">apuntes universitarios</mark> con
+					facilidad. Todo lo que necesitas para estudiar mejor, en un solo lugar.
+				</p>
+			</div>
+		</div>
 
-		<div
-			class="relative z-10 flex flex-col lg:flex-row w-full max-w-6xl p-4 lg:p-0 mt-24 lg:mt-0 mb-24"
-		>
-			<div
-				class="flex-1 h-full flex justify-center items-center lg:items-start py-12 border border-zinc-300 rounded-none lg:px-10 bg-zinc-50 shadow-[-8px_8px_0px_#d4d4d8] transition-all hover:shadow-none hover:translate-x-[-8px] hover:translate-y-[8px]"
-			>
-				<div
-					class="max-w-md flex flex-col items-center lg:items-start text-left mx-auto lg:mx-0 w-full p-4"
-				>
-					<h1 class="text-5xl text-zinc-700">nemsy</h1>
-					<p class="py-6">
-						Comparte y accede a <mark class="bg-red-200 text-red-900">apuntes universitarios</mark> con
-						facilidad. Todo lo que necesitas para estudiar mejor, en un solo lugar.
+		<div class="px-4 -mt-8">
+			<div class="max-w-5xl mx-auto">
+				<img
+					src={screenshotImg}
+					alt="Vista de la plataforma"
+					class="w-full border border-zinc-300"
+				/>
+			</div>
+		</div>
+
+		<div class="max-w-5xl mx-auto py-24 px-4 flex flex-col gap-24">
+			<div class="flex flex-col md:flex-row items-center gap-10">
+				<div class="flex-1">
+					<h2 class="text-3xl text-zinc-700 mb-3">
+						<mark class="bg-yellow-200 text-yellow-900">Open Source</mark>
+					</h2>
+					<p class="text-zinc-500 text-lg">
+						Completamente transparente. Todo el código es público, puedes inspeccionarlo, contribuir
+						o adaptarlo. Licenciado bajo la <a
+							href="https://interoperable-europe.ec.europa.eu/sites/default/files/custom-page/attachment/eupl_v1.2_es.pdf"
+							class="text-indigo-400 underline">Licencia Pública de la Unión Europea</a
+						>.
 					</p>
-
-					<div class="grid gap-3 mb-6 w-full">
-						<div class="flex items-center gap-2 justify-start">
-							<span
-								><mark class="bg-yellow-200 text-yellow-900">Open Source</mark> = transparente y colaborativo.</span
-							>
-						</div>
-						<div class="flex items-center gap-2 justify-start">
-							<span
-								><mark class="bg-blue-200 text-blue-900">Sin anuncios</mark> = tu atención en lo que importa.</span
-							>
-						</div>
-						<div class="flex items-center gap-2 justify-start">
-							<span
-								><mark class="bg-lime-200 text-lime-900">Rápido y ligero</mark> = acceso instantáneo a
-								tus apuntes.</span
-							>
-						</div>
-					</div>
+				</div>
+				<div class="flex-1 flex justify-center">
+					<p class="text-8xl font-bold text-zinc-300 text-center leading-none">
+						EUPL
+						<span class="block text-lg font-normal text-zinc-400 mt-2"
+							>Licencia pública europea</span
+						>
+					</p>
 				</div>
 			</div>
 
-			<div class="flex-1 h-full flex justify-center items-center p-4 rounded-none-xl">
-				<div class="w-full max-w-md text-base-100">
-					<div style="height: 400px;"></div>
+			<div class="flex flex-col md:flex-row-reverse items-center gap-10">
+				<div class="flex-1">
+					<h2 class="text-3xl text-zinc-700 mb-3">
+						<mark class="bg-blue-200 text-blue-900">Sin anuncios</mark>
+					</h2>
+					<p class="text-zinc-500 text-lg">
+						Valoramos tu tiempo. Sin anuncios embebidos en tus apuntes ni <i>banners</i> o
+						<i>popups</i> antes de descargarlos.
+					</p>
+				</div>
+				<div class="flex-1 flex justify-center">
+					<p class="text-6xl font-bold text-zinc-300 text-center leading-tight">
+						SIN
+						<span class="block">ANUNCIOS</span>
+					</p>
+				</div>
+			</div>
+
+			<div class="flex flex-col md:flex-row items-center gap-10">
+				<div class="flex-1">
+					<h2 class="text-3xl text-zinc-700 mb-3">
+						<mark class="bg-lime-200 text-lime-900">Rápido y ligero</mark>
+					</h2>
+					<p class="text-zinc-500 text-lg">
+						Búsca apuntes de tu grado o entre toda la plataforma instantaneamente.
+					</p>
+				</div>
+				<div class="flex-1 flex justify-center">
+					<p class="text-8xl font-bold text-zinc-300 text-center leading-none">
+						0ms
+						<span class="block text-lg font-normal text-zinc-400 mt-2">blocking time</span>
+					</p>
 				</div>
 			</div>
 		</div>

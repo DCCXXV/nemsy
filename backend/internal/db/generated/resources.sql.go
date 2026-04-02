@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const adminDeleteResource = `-- name: AdminDeleteResource :exec
+DELETE FROM resources WHERE id = $1
+`
+
+func (q *Queries) AdminDeleteResource(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, adminDeleteResource, id)
+	return err
+}
+
 const createResource = `-- name: CreateResource :one
 INSERT INTO resources (
     owner_id, subject_id, title, description

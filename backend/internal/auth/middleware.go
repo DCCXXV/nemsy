@@ -12,6 +12,7 @@ type ctxKey string
 
 const CtxUserInfo ctxKey = "user_info"
 const CtxUserID ctxKey = "userID"
+const CtxUserRole ctxKey = "userRole"
 
 type AuthMiddleware struct {
 	Secret []byte
@@ -70,8 +71,14 @@ func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 
 		log.Printf("AuthMiddleware: user_id = %d", userID)
 
+		role, _ := claims["role"].(string)
+		if role == "" {
+			role = "user"
+		}
+
 		ctx := context.WithValue(r.Context(), CtxUserInfo, userInfo)
 		ctx = context.WithValue(ctx, CtxUserID, userID)
+		ctx = context.WithValue(ctx, CtxUserRole, role)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

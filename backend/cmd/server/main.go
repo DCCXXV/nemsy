@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/DCCXXV/Nemsy/backend/internal/admin"
 	"github.com/DCCXXV/Nemsy/backend/internal/app"
 	"github.com/DCCXXV/Nemsy/backend/internal/auth"
 	db "github.com/DCCXXV/Nemsy/backend/internal/db/generated"
@@ -84,6 +85,7 @@ func main() {
 	universitiesHandler := universities.NewHandler(myApp)
 	usersHandler := users.NewHandler(myApp)
 	resourcesHandler := resources.NewHandler(myApp)
+	adminHandler := admin.NewHandler(myApp)
 
 	r.Get("/auth/login", authHandler.LoginHandler)
 	r.Get("/auth/callback", authHandler.CallbackHandler)
@@ -115,6 +117,15 @@ func main() {
 		protected.Get("/api/resources/{id}/download", resourcesHandler.Download)
 		protected.Get("/api/resources/{id}/files/{fileId}/download", resourcesHandler.DownloadFile)
 		protected.Get("/api/subjects/{id}/resources", resourcesHandler.ListBySubject)
+
+		protected.Post("/api/resources/{id}/report", resourcesHandler.Report)
+
+		protected.Group(func(adminRoutes chi.Router) {
+			adminRoutes.Use(auth.AdminOnly)
+			adminRoutes.Get("/api/admin/reports", adminHandler.ListReports)
+			adminRoutes.Delete("/api/admin/reports/{id}", adminHandler.DismissReport)
+			adminRoutes.Delete("/api/admin/resources/{id}", adminHandler.DeleteResource)
+		})
 	})
 
 	srv := &http.Server{Addr: ":8080", Handler: r}

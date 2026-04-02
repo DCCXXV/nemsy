@@ -165,7 +165,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 		Email:     "test@example.com",
 	}
 
-	tokenStr, err := GenerateJWTWithUserID(userInfo, 42, secret)
+	tokenStr, err := GenerateJWTWithUserID(userInfo, 42, "user", secret)
 	if err != nil {
 		t.Fatal("Error generating JWT:", err)
 	}

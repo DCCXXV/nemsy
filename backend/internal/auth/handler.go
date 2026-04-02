@@ -135,7 +135,7 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtToken, err := GenerateJWTWithUserID(userInfo, int(user.ID), h.JWTSecret)
+	jwtToken, err := GenerateJWTWithUserID(userInfo, int(user.ID), user.Role, h.JWTSecret)
 	if err != nil {
 		http.Error(w, "Could not create session token", http.StatusInternalServerError)
 		return

@@ -25,6 +25,7 @@ type UserResponse struct {
 	ID               int32   `json:"id"`
 	Email            string  `json:"email"`
 	Username         string  `json:"username"`
+	Role             string  `json:"role"`
 	Hd               *string `json:"hd,omitempty"`
 	StudyID          *int32  `json:"studyId,omitempty"`
 	StudyName        *string `json:"studyName,omitempty"`
@@ -50,6 +51,7 @@ func (h *Handler) MeHandler(w http.ResponseWriter, r *http.Request) {
 		ID:       user.ID,
 		Email:    user.Email,
 		Username: user.Username,
+		Role:     user.Role,
 	}
 	if user.Hd.Valid {
 		resp.Hd = &user.Hd.String
@@ -288,6 +290,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		ID:       user.ID,
 		Email:    user.Email,
 		Username: user.Username,
+		Role:     user.Role,
 	}
 	if user.Hd.Valid {
 		resp.Hd = &user.Hd.String
@@ -317,6 +320,7 @@ func (h *Handler) GetByUsername(w http.ResponseWriter, r *http.Request) {
 		ID:       user.ID,
 		Email:    user.Email,
 		Username: user.Username,
+		Role:     user.Role,
 	}
 	if user.Hd.Valid {
 		resp.Hd = &user.Hd.String

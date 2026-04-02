@@ -67,3 +67,6 @@ UPDATE users
 SET university_id = $2
 WHERE id = $1
 RETURNING *;
+
+-- name: GetUserRole :one
+SELECT role FROM users WHERE id = $1;

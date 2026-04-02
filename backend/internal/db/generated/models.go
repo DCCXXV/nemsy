@@ -14,6 +14,14 @@ type PinnedSubject struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type Report struct {
+	ID         int32
+	ResourceID int32
+	ReporterID int32
+	Reason     string
+	CreatedAt  pgtype.Timestamp
+}
+
 type Resource struct {
 	ID            int32
 	OwnerID       int32
@@ -63,4 +71,5 @@ type User struct {
 	CreatedAt    pgtype.Timestamp
 	Username     string
 	UniversityID pgtype.Int4
+	Role         string
 }

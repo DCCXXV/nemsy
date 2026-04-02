@@ -11,10 +11,14 @@ import (
 )
 
 type Querier interface {
+	AdminDeleteResource(ctx context.Context, id int32) error
+	CreateReport(ctx context.Context, arg CreateReportParams) (Report, error)
 	CreateResource(ctx context.Context, arg CreateResourceParams) (Resource, error)
 	CreateResourceFile(ctx context.Context, arg CreateResourceFileParams) (ResourceFile, error)
 	CreateSubject(ctx context.Context, arg CreateSubjectParams) (Subject, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteReport(ctx context.Context, id int32) error
+	DeleteReportsByResource(ctx context.Context, resourceID int32) error
 	DeleteResource(ctx context.Context, arg DeleteResourceParams) error
 	DeleteResourceFile(ctx context.Context, id int32) error
 	GetResource(ctx context.Context, id int32) (Resource, error)
@@ -27,11 +31,13 @@ type Querier interface {
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	GetUserRole(ctx context.Context, id int32) (string, error)
 	GetUserWithStudy(ctx context.Context, id int32) (GetUserWithStudyRow, error)
 	GetUserWithStudyByEmail(ctx context.Context, email string) (GetUserWithStudyByEmailRow, error)
 	GetUserWithStudyByUsername(ctx context.Context, username string) (GetUserWithStudyByUsernameRow, error)
 	IncrementDownloadCount(ctx context.Context, id int32) error
 	ListFilesByResource(ctx context.Context, resourceID int32) ([]ResourceFile, error)
+	ListReports(ctx context.Context, arg ListReportsParams) ([]ListReportsRow, error)
 	ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Resource, error)
 	ListResourcesByOwnerWithSubject(ctx context.Context, ownerID int32) ([]ListResourcesByOwnerWithSubjectRow, error)
 	ListResourcesBySubject(ctx context.Context, subjectID int32) ([]Resource, error)

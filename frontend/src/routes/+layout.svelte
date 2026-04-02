@@ -6,6 +6,7 @@
 	import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
 	import HouseIcon from 'phosphor-svelte/lib/HouseIcon';
 	import ShapesIcon from 'phosphor-svelte/lib/ShapesIcon';
+	import ShieldCheckIcon from 'phosphor-svelte/lib/ShieldCheckIcon';
 	import UserIcon from 'phosphor-svelte/lib/UserIcon';
 
 	let props = $props<{ data: LayoutData; children: () => unknown }>();
@@ -17,7 +18,7 @@
 	{@render props.children?.()}
 {:else}
 	<div class="min-h-screen flex flex-col bg-zinc-100 transition-all pb-16 md:pb-0">
-		<div class="bg-zinc-100/70 backdrop-blur-lg z-50 flex items-center justify-between px-4 py-2">
+		<div class="z-50 flex items-center justify-between px-4 py-2 {props.data.me ? 'bg-zinc-100/70 backdrop-blur-lg' : 'sticky top-0'}">
 			<a
 				href="/"
 				class="h-10 text-2xl text-zinc-700 px-4 py-2 transition-colors inline-flex items-center cursor-pointer"
@@ -26,7 +27,7 @@
 				nemsy
 			</a>
 
-			<div class="hidden md:flex flex-1 justify-center">
+			<div class="{props.data.me ? 'hidden md:flex' : 'hidden'} flex-1 justify-center">
 				<ul class="flex list-none bg-zinc-50 rounded-none">
 					<li>
 						<a
@@ -61,6 +62,17 @@
 
 			<div class="hidden md:flex flex-none flex-row items-center gap-4">
 				{#if props.data.me}
+					{#if props.data.me.role === 'admin'}
+						<a
+							href="/admin"
+							class="h-10 flex items-center px-4 py-2 transition-colors
+							{currentPath === '/admin'
+								? 'bg-amber-200 text-amber-900 border-amber-300 border rounded-none'
+								: 'bg-zinc-50 text-zinc-600 border-zinc-300 border rounded-none hover:bg-zinc-200'}"
+						>
+							<ShieldCheckIcon class="size-5 mr-1" />Admin
+						</a>
+					{/if}
 					<a
 						href="/user/{props.data.me?.username}"
 						class="h-10 flex items-center px-4 py-2 bg-zinc-50 text-zinc-900 border-zinc-300 border rounded-none"

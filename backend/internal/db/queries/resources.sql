@@ -80,3 +80,6 @@ LIMIT $2 OFFSET $3;
 
 -- name: DeleteResource :exec
 DELETE FROM resources WHERE id = $1 AND owner_id = $2;
+
+-- name: AdminDeleteResource :exec
+DELETE FROM resources WHERE id = $1;
