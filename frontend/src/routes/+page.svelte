@@ -116,7 +116,7 @@
 			class="relative z-10 flex flex-col md:flex-row items-stretch md:items-start md:justify-center pt-4 pb-6 gap-4 md:gap-0 px-4 md:px-0"
 		>
 			<div
-				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/4 md:ml-4 md:sticky md:top-4"
+				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/3 xl:w-1/4 md:ml-4 md:sticky md:top-4"
 			>
 				<div class="p-2 flex gap-4 items-center border-b border-zinc-300">
 					<img
@@ -206,7 +206,7 @@
 				</Collapsible.Root>
 			</div>
 			<div
-				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:w-1/2 md:mx-4 {data
+				class="bg-zinc-50 border border-zinc-300 rounded-none w-full md:flex-1 xl:w-1/2 md:mx-4 {data
 					.resources.length
 					? ''
 					: 'border-b-0'}"
@@ -256,7 +256,7 @@
 				</div>
 			</div>
 			<div
-				class="hidden md:flex bg-zinc-100 rounded-none w-1/4 mr-4 min-h-136 sticky top-4 flex-col items-center"
+				class="hidden xl:flex bg-zinc-100 rounded-none w-1/4 mr-4 min-h-136 sticky top-4 flex-col items-center"
 			></div>
 		</div>
 	</div>

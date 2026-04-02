@@ -6,6 +6,7 @@
 	import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
 	import HouseIcon from 'phosphor-svelte/lib/HouseIcon';
 	import ShapesIcon from 'phosphor-svelte/lib/ShapesIcon';
+	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import ShieldCheckIcon from 'phosphor-svelte/lib/ShieldCheckIcon';
 	import UserIcon from 'phosphor-svelte/lib/UserIcon';
 
@@ -17,8 +18,16 @@
 {#if currentPath.includes('/auth')}
 	{@render props.children?.()}
 {:else}
-	<div class="min-h-screen flex flex-col bg-zinc-100 transition-all pb-16 md:pb-0">
-		<div class="z-50 flex items-center justify-between px-4 py-2 {props.data.me ? 'bg-zinc-100/70 backdrop-blur-lg' : 'sticky top-0'}">
+	<div
+		class="min-h-screen flex flex-col bg-zinc-100 transition-all {props.data.me
+			? 'pb-16'
+			: 'pb-0'} md:pb-0"
+	>
+		<div
+			class="z-50 flex items-center justify-between px-4 py-2 {props.data.me
+				? 'bg-zinc-100/70 backdrop-blur-lg'
+				: 'sticky top-0 md:bg-transparent backdrop-blur-lg md:backdrop-blur-none'}"
+		>
 			<a
 				href="/"
 				class="h-10 text-2xl text-zinc-700 px-4 py-2 transition-colors inline-flex items-center cursor-pointer"
@@ -60,7 +69,9 @@
 				</ul>
 			</div>
 
-			<div class="hidden md:flex flex-none flex-row items-center gap-4">
+			<div
+				class="{props.data.me ? 'hidden md:flex' : 'flex'} flex-none flex-row items-center gap-4"
+			>
 				{#if props.data.me}
 					{#if props.data.me.role === 'admin'}
 						<a
@@ -106,10 +117,23 @@
 		</div>
 
 		{@render props.children?.()}
+
+		{#if props.data.me}
+			<a
+				href="/create"
+				class="md:hidden fixed bottom-20 right-4 z-50 size-18 flex items-center justify-center bg-lime-300/50 text-lime-900 backdrop-blur-sm"
+				style="-webkit-backdrop-filter: blur(16px);"
+				title="Compartir recurso"
+			>
+				<PlusIcon weight="regular" class="size-8" />
+			</a>
+		{/if}
 	</div>
 
 	<nav
-		class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-50/70 border-t border-zinc-300 backdrop-blur-lg flex"
+		class="{props.data.me
+			? ''
+			: 'hidden'} md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-50/70 border-t border-zinc-300 backdrop-blur-lg flex"
 	>
 		<a
 			href="/"
@@ -120,12 +144,12 @@
 			Inicio
 		</a>
 		<a
-			href="/create"
+			href="/search"
 			class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors
-			{currentPath === '/create' ? 'text-violet-700 bg-violet-50' : 'text-zinc-500 hover:text-zinc-900'}"
+			{currentPath === '/search' ? 'text-violet-700 bg-violet-50' : 'text-zinc-500 hover:text-zinc-900'}"
 		>
-			<ShapesIcon class="size-6" />
-			Compartir
+			<GlobeIcon class="size-6" />
+			Búsqueda Global
 		</a>
 		{#if props.data.me}
 			<a
