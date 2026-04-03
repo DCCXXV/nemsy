@@ -164,6 +164,27 @@
 												{#if id === 'Fijadas'}
 													{#if pinnedSubjects.length}
 														{#each pinnedSubjects as subject (subject.id)}
+															<li>
+																<a
+																	href="?subject={subject.id}"
+																	onclick={() => selectSubject(subject.id.toString())}
+																	class="block rounded-none py-2 px-2 mb-2 border cursor-pointer
+																{selectedSubject?.name == subject?.name
+																		? 'bg-lime-200 border-lime-200 text-lime-800'
+																		: 'text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border-zinc-50 hover:border-zinc-200'}"
+																>
+																	{subject.name}
+																</a>
+															</li>
+														{/each}
+													{:else}
+														<li class="text-zinc-500 py-2 px-2">
+															No has fijado ninguna asignatura todavía
+														</li>
+													{/if}
+												{:else if subjectsByYear[id]?.length}
+													{#each subjectsByYear[id] as subject (subject.id)}
+														<li>
 															<a
 																href="?subject={subject.id}"
 																onclick={() => selectSubject(subject.id.toString())}
@@ -174,24 +195,7 @@
 															>
 																{subject.name}
 															</a>
-														{/each}
-													{:else}
-														<li class="text-zinc-500 py-2 px-2">
-															No has fijado ninguna asignatura todavía
 														</li>
-													{/if}
-												{:else if subjectsByYear[id]?.length}
-													{#each subjectsByYear[id] as subject (subject.id)}
-														<a
-															href="?subject={subject.id}"
-															onclick={() => selectSubject(subject.id.toString())}
-															class="block rounded-none py-2 px-2 mb-2 border cursor-pointer
-														{selectedSubject?.name == subject?.name
-																? 'bg-lime-200 border-lime-200 text-lime-800'
-																: 'text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border-zinc-50 hover:border-zinc-200'}"
-														>
-															{subject.name}
-														</a>
 													{/each}
 												{:else}
 													<li class="text-zinc-500 py-2 px-2">No hay asignaturas</li>
@@ -223,6 +227,7 @@
 									<button
 										onclick={() => togglePin(selectedSubject.id)}
 										class="flex items-center justify-center cursor-pointer"
+										aria-label="Fijar asignatura"
 									>
 										{#if pinnedIds.has(selectedSubject.id)}
 											<PushPinIcon weight="fill" class="size-6 text-red-400" />

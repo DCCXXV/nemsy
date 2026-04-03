@@ -3,6 +3,7 @@
 	import type { LayoutData } from './$types';
 	import { page } from '$app/state';
 
+	import GithubLogoIcon from 'phosphor-svelte/lib/GithubLogoIcon';
 	import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
 	import HouseIcon from 'phosphor-svelte/lib/HouseIcon';
 	import ShapesIcon from 'phosphor-svelte/lib/ShapesIcon';
@@ -20,7 +21,7 @@
 {:else}
 	<div
 		class="min-h-screen flex flex-col bg-zinc-100 transition-all {props.data.me
-			? 'pb-16'
+			? 'pb-20'
 			: 'pb-0'} md:pb-0"
 	>
 		<div
@@ -116,7 +117,9 @@
 			</div>
 		</div>
 
-		{@render props.children?.()}
+		<main>
+			{@render props.children?.()}
+		</main>
 
 		{#if props.data.me}
 			<a
@@ -137,89 +140,87 @@
 	>
 		<a
 			href="/"
-			class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors
-			{currentPath === '/' ? 'text-violet-700 bg-violet-50' : 'text-zinc-500 hover:text-zinc-900'}"
+			class="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs transition-colors
+			{currentPath === '/' ? 'text-violet-700 bg-violet-100' : 'text-zinc-500 hover:text-zinc-900'}"
 		>
-			<HouseIcon class="size-6" />
+			<HouseIcon class="size-7" />
 			Inicio
 		</a>
 		<a
 			href="/search"
-			class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors
-			{currentPath === '/search' ? 'text-violet-700 bg-violet-50' : 'text-zinc-500 hover:text-zinc-900'}"
+			class="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs transition-colors
+			{currentPath === '/search' ? 'text-violet-700 bg-violet-100' : 'text-zinc-500 hover:text-zinc-900'}"
 		>
-			<GlobeIcon class="size-6" />
+			<GlobeIcon class="size-7" />
 			Búsqueda Global
 		</a>
 		{#if props.data.me}
 			<a
 				href="/user/{props.data.me?.username}"
-				class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors
+				class="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs transition-colors
 				{currentPath.startsWith('/user')
-					? 'text-violet-700 bg-violet-50'
+					? 'text-violet-700 bg-violet-100'
 					: 'text-zinc-500 hover:text-zinc-900'}"
 			>
-				<UserIcon class="size-6" />
+				<UserIcon class="size-7" />
 				{props.data.me.username}
 			</a>
 		{:else}
 			<a
 				href="/auth"
-				class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors text-zinc-500 hover:text-zinc-900"
+				class="flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs transition-colors text-zinc-500 hover:text-zinc-900"
 			>
-				<UserIcon class="size-6" />
+				<UserIcon class="size-7" />
 				Entrar
 			</a>
 		{/if}
 	</nav>
 
-	<footer class="bg-zinc-200 text-zinc-700 p-10 flex flex-col md:flex-row justify-between gap-8">
-		<aside class="flex flex-col md:flex-row items-start md:items-center gap-4 shrink-0">
-			<img src="/favicon.svg" alt="Logo" class="size-16 mr-3 grayscale" />
-			<p class="text-sm">
-				nemsy.org
-				<br />
-				<span class="text-zinc-700 italic"
-					>Recursos académicos compartidos por y para estudiantes</span
-				>
-			</p>
-		</aside>
+	<footer class="bg-zinc-200 text-zinc-600 px-10 py-10 flex flex-col gap-8">
+		<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-10">
+			<div class="flex flex-col gap-3 shrink-0">
+				<div class="flex items-center gap-3">
+					<img src="/favicon.svg" alt="Logo" class="size-10 grayscale" />
+					<span class="text-xl text-zinc-700">nemsy</span>
+				</div>
+				<p class="text-sm leading-relaxed max-w-md">
+					Plataforma de intercambio de apuntes y recursos académicos entre estudiantes
+					universitarios. Proyecto de Trabajo de Fin de Grado desarrollado en la Universidad
+					Complutense de Madrid.
+				</p>
+			</div>
 
-		<nav class="flex grow flex-col gap-2 flex-1 sm:flex-none">
-			<h6 class="text-sm font-bold tracking-wide text-zinc-600 uppercase">Información</h6>
+			<nav class="flex flex-wrap gap-6 text-lg">
+				<a href="/tos" class="hover:text-zinc-900 transition-colors">Condiciones de uso</a>
+				<a href="/privacy" class="hover:text-zinc-900 transition-colors">Política de privacidad</a>
+				<a href="/cookies" class="hover:text-zinc-900 transition-colors">Política de cookies</a>
+			</nav>
+		</div>
+
+		<div class="flex justify-between gap-6">
+			<div class="text-md text-zinc-400 font-light uppercase tracking-wide flex flex-col gap-1">
+				<p>
+					Este sitio no utiliza cookies de análisis, publicidad ni de terceros. La única cookie
+					presente es una cookie técnica de sesión, estrictamente necesaria para mantener la
+					autenticación del usuario. De conformidad con el artículo 22.2 de la Ley 34/2002 de
+					Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), las
+					cookies técnicas están exentas del requisito de consentimiento previo, por lo que no es
+					necesario mostrar un banner de aceptación de cookies.
+				</p>
+				<p class="text-zinc-600 mt-6">
+					© 2026 Nemsy. Código fuente disponible bajo la Licencia Pública de la Unión Europea (EUPL
+					v1.2)
+				</p>
+			</div>
 			<a
-				href="/"
-				class="text-zinc-700 hover:text-zinc-900 hover:underline transition-colors no-underline"
+				href="https://github.com/DCCXXV/nemsy"
+				target="_blank"
+				rel="noopener noreferrer"
+				aria-label="GitHub"
+				class="text-zinc-500 hover:text-zinc-700 transition-colors"
 			>
-				Sobre nosotros
+				<GithubLogoIcon class="size-8 my-2" />
 			</a>
-			<a
-				href="/"
-				class="text-zinc-700 hover:text-zinc-900 hover:underline transition-colors no-underline"
-			>
-				Contacto
-			</a>
-		</nav>
-		<nav class="flex flex-col gap-2 flex-1 sm:flex-none">
-			<h6 class="text-sm font-bold tracking-wide text-zinc-600 uppercase">Legal</h6>
-			<a
-				href="/tos"
-				class="text-zinc-700 hover:text-zinc-900 hover:underline transition-colors no-underline"
-			>
-				Términos de uso
-			</a>
-			<a
-				href="/privacy"
-				class="text-zinc-700 hover:text-zinc-900 hover:underline transition-colors no-underline"
-			>
-				Política de privacidad
-			</a>
-			<a
-				href="/cookies"
-				class="text-zinc-700 hover:text-zinc-900 hover:underline transition-colors no-underline"
-			>
-				Política de Cookies
-			</a>
-		</nav>
+		</div>
 	</footer>
 {/if}

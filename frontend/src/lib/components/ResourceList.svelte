@@ -120,7 +120,7 @@
 				class="bg-transparent text-sm text-zinc-700 placeholder-zinc-400 outline-none border-none focus:outline-none ring-0 focus:ring-0 w-full"
 			/>
 		</div>
-		<div class="text-zinc-500 bg-zinc-100 border-l hover:text-zinc-900 border-zinc-300">
+		<div class="text-zinc-600 bg-zinc-100 border-l hover:text-zinc-900 border-zinc-300">
 			<button
 				class="flex gap-1 items-center justify-center cursor-pointer px-2"
 				onclick={() => {
@@ -137,7 +137,7 @@
 				{/if}
 			</button>
 		</div>
-		<div class="text-zinc-500 bg-zinc-100 border-l hover:text-zinc-900 border-zinc-300">
+		<div class="text-zinc-600 bg-zinc-100 border-l hover:text-zinc-900 border-zinc-300">
 			<button
 				class="flex gap-1 items-center justify-center cursor-pointer px-2"
 				onclick={toggleCompactMode}
@@ -157,7 +157,7 @@
 				{query.trim() ? 'No hay recursos que coincidan con tu búsqueda.' : emptyMessage}
 			</p>
 			{#if emptySubMessage && !query.trim()}
-				<p class="text-zinc-400 text-sm">{emptySubMessage}</p>
+				<p class="text-zinc-500 text-sm">{emptySubMessage}</p>
 			{/if}
 		</div>
 	{:else}
