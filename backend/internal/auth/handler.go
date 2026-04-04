@@ -20,10 +20,10 @@ type Handler struct {
 	OAuthConfig *oauth2.Config
 	JWTSecret   []byte
 	StateStore  *StateStore
-	Queries     *db.Queries
+	Queries     db.Querier
 }
 
-func NewHandler(cfg *oauth2.Config, secret []byte, store *StateStore, queries *db.Queries) *Handler {
+func NewHandler(cfg *oauth2.Config, secret []byte, store *StateStore, queries db.Querier) *Handler {
 	return &Handler{
 		OAuthConfig: cfg,
 		JWTSecret:   secret,
