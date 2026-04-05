@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// mockQuerier implements app.QuerierWithTx with only the methods we need
+// methods not used in these tests will just panic
 type mockQuerier struct {
 	db.Querier
 	listUniversitiesFn   func(ctx context.Context) ([]db.ListUniversitiesRow, error)
