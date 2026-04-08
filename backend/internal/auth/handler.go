@@ -51,7 +51,6 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		oauth2.AccessTypeOffline,
 		oauth2.SetAuthURLParam("prompt", "select_account"),
 	)
-	log.Println("Redirecting to:", url)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
@@ -61,8 +60,6 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expires", "0")
 
 	returnedState := r.URL.Query().Get("state")
-	log.Println("Callback state param:", returnedState)
-
 	if !h.StateStore.Check(returnedState) {
 		http.Error(w, "Invalid OAuth state", http.StatusUnauthorized)
 		return
@@ -71,7 +68,7 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	token, err := h.OAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		log.Println("Exchange failed:", err)
+		log.Println("OAuth exchange failed")
 		http.Error(w, "Failed exchange", http.StatusUnauthorized)
 		return
 	}
@@ -94,7 +91,7 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err = h.Queries.GetUserByEmail(r.Context(), userInfo.Email)
 	if err == pgx.ErrNoRows {
-		log.Println("User not found, creating new user:", userInfo.Email)
+		log.Println("Creating new user")
 
 		var universityID pgtype.Int4
 		if userInfo.Hd != "" {
