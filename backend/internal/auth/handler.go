@@ -144,8 +144,9 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		Name:     "session_token",
 		Value:    jwtToken,
 		Path:     "/",
+		Domain:   ".nemsy.org",
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
 
@@ -161,8 +162,9 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Name:     "session_token",
 		Value:    "",
 		Path:     "/",
+		Domain:   ".nemsy.org",
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
