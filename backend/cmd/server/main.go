@@ -84,7 +84,7 @@ func main() {
 
 	store := auth.NewStateStore(5 * time.Minute)
 
-	authHandler := auth.NewHandler(auth.GoogleOAuthConfig(), secret, store, myApp.Queries)
+	authHandler := auth.NewHandler(auth.GoogleOAuthConfig(), secret, store, myApp.Queries, allowedOrigin)
 	studiesHandler := studies.NewHandler(myApp)
 	universitiesHandler := universities.NewHandler(myApp)
 	usersHandler := users.NewHandler(myApp)

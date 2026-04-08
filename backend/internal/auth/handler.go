@@ -17,18 +17,20 @@ import (
 )
 
 type Handler struct {
-	OAuthConfig *oauth2.Config
-	JWTSecret   []byte
-	StateStore  *StateStore
-	Queries     db.Querier
+	OAuthConfig    *oauth2.Config
+	JWTSecret      []byte
+	StateStore     *StateStore
+	Queries        db.Querier
+	FrontendOrigin string
 }
 
-func NewHandler(cfg *oauth2.Config, secret []byte, store *StateStore, queries db.Querier) *Handler {
+func NewHandler(cfg *oauth2.Config, secret []byte, store *StateStore, queries db.Querier, frontendOrigin string) *Handler {
 	return &Handler{
-		OAuthConfig: cfg,
-		JWTSecret:   secret,
-		StateStore:  store,
-		Queries:     queries,
+		OAuthConfig:    cfg,
+		JWTSecret:      secret,
+		StateStore:     store,
+		Queries:        queries,
+		FrontendOrigin: frontendOrigin,
 	}
 }
 
@@ -148,9 +150,9 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if newUser {
-		http.Redirect(w, r, "http://localhost:5173/auth", http.StatusSeeOther)
+		http.Redirect(w, r, h.FrontendOrigin+"/auth", http.StatusSeeOther)
 	} else {
-		http.Redirect(w, r, "http://localhost:5173/", http.StatusSeeOther)
+		http.Redirect(w, r, h.FrontendOrigin+"/", http.StatusSeeOther)
 	}
 }
 
