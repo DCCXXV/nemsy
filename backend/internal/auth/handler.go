@@ -156,3 +156,16 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "http://localhost:5173/", http.StatusSeeOther)
 	}
 }
+
+func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
+	w.WriteHeader(http.StatusOK)
+}

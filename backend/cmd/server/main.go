@@ -93,6 +93,7 @@ func main() {
 
 	r.Get("/auth/login", authHandler.LoginHandler)
 	r.Get("/auth/callback", authHandler.CallbackHandler)
+	r.Post("/auth/logout", authHandler.LogoutHandler)
 
 	mw := &auth.AuthMiddleware{Secret: secret}
 	r.Group(func(protected chi.Router) {

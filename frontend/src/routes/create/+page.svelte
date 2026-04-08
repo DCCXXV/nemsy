@@ -161,7 +161,11 @@
 <div
 	class="bg-zinc-100 flex items-start justify-center pt-4 pb-6 min-h-screen relative overflow-hidden px-4 md:px-0"
 >
-	<img src="/img/tree.svg" alt="" class="absolute -bottom-46 right-12 w-250 pointer-events-none" />
+	<img
+		src="/img/tree.svg"
+		alt=""
+		class="invisible md:visible absolute -bottom-46 right-12 w-250 pointer-events-none"
+	/>
 
 	<div class="relative z-10 flex flex-col md:flex-row items-start gap-4 w-full md:w-auto">
 		<div class="bg-zinc-50 border border-zinc-300 w-full md:w-[43vw] shrink-0 p-4">
