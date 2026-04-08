@@ -39,6 +39,8 @@ services:
         restart: unless-stopped
         depends_on:
             - backend
+        environment:
+            PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL}
         ports:
             - "3000:3000"
 
