@@ -1,0 +1,46 @@
+services:
+    db:
+        image: postgres:17-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: nemsy
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            POSTGRES_DB: nemsy
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        ports:
+            - "127.0.0.1:5432:5432"
+
+    backend:
+        build: ./backend
+        restart: unless-stopped
+        depends_on:
+            - db
+        environment:
+            DATABASE_URL: postgresql://nemsy:${DB_PASSWORD}@db:5432/nemsy?sslmode=disable
+            JWT_SECRET: ${JWT_SECRET}
+            ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
+            GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+            GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+            GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL}
+            S3_ENDPOINT: ${S3_ENDPOINT}
+            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${S3_SECRET_KEY}
+            S3_BUCKET: ${S3_BUCKET}
+            S3_USE_SSL: ${S3_USE_SSL:-true}
+        ports:
+            - "127.0.0.1:8080:8080"
+
+    frontend:
+        build:
+            context: ./frontend
+            args:
+                PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL}
+        restart: unless-stopped
+        depends_on:
+            - backend
+        ports:
+            - "3000:3000"
+
+volumes:
+    pgdata:
