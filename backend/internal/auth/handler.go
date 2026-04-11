@@ -96,8 +96,15 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Creating new user")
 
 		var universityID pgtype.Int4
-		if userInfo.Hd != "" {
-			uni, uniErr := h.Queries.GetUniversityByDomain(r.Context(), userInfo.Hd)
+		domain := userInfo.Hd
+		if domain == "" {
+			parts := strings.Split(userInfo.Email, "@")
+			if len(parts) == 2 {
+				domain = parts[1]
+			}
+		}
+		if domain != "" {
+			uni, uniErr := h.Queries.GetUniversityByDomainSuffix(r.Context(), domain)
 			if uniErr == nil {
 				universityID = pgtype.Int4{Int32: uni.ID, Valid: true}
 			}

@@ -28,6 +28,7 @@ type Querier interface {
 	GetSubject(ctx context.Context, id int32) (Subject, error)
 	GetUniversity(ctx context.Context, id int32) (University, error)
 	GetUniversityByDomain(ctx context.Context, domain string) (University, error)
+	GetUniversityByDomainSuffix(ctx context.Context, domain string) (University, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)

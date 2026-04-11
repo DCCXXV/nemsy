@@ -43,6 +43,24 @@ func (q *Queries) GetUniversityByDomain(ctx context.Context, domain string) (Uni
 	return i, err
 }
 
+const getUniversityByDomainSuffix = `-- name: GetUniversityByDomainSuffix :one
+SELECT id, name, domain, search_vector FROM universities
+WHERE $1 = domain OR $1 LIKE '%.' || domain
+LIMIT 1
+`
+
+func (q *Queries) GetUniversityByDomainSuffix(ctx context.Context, domain string) (University, error) {
+	row := q.db.QueryRow(ctx, getUniversityByDomainSuffix, domain)
+	var i University
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Domain,
+		&i.SearchVector,
+	)
+	return i, err
+}
+
 const listUniversities = `-- name: ListUniversities :many
 SELECT id, name, domain FROM universities
 ORDER BY name
