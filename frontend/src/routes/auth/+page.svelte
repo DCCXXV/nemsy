@@ -139,7 +139,7 @@
 	}
 </script>
 
-<div class="lg:mx-20 w-full h-full flex flex-col relative">
+<div class="lg:mx-20 w-full h-full flex flex-col relative overflow-hidden">
 	{#if data.me && data.me.studyId == null}
 		{#if !uniResolved}
 			{#if !data.me.universityId}
@@ -163,7 +163,7 @@
 			{#if searchingUnis}
 				<p class="text-center text-zinc-500">Buscando...</p>
 			{:else if universities.length > 0}
-				<div class="bg-zinc-50 border border-zinc-300 overflow-auto max-h-1/2">
+				<div class="bg-zinc-50 border border-zinc-300 overflow-auto min-h-0 flex-1">
 					{#each universities as uni (uni.id)}
 						<button
 							onclick={() => selectUniversity(uni)}
@@ -211,7 +211,7 @@
 			{#if loading}
 				<p class="text-center text-zinc-500">Cargando grados...</p>
 			{:else if filteredStudies.length > 0}
-				<div class="mb-6 bg-zinc-50 border border-zinc-300 overflow-auto max-h-1/2">
+				<div class="mb-6 bg-zinc-50 border border-zinc-300 overflow-auto min-h-0 flex-1">
 					{#each filteredStudies as study (study.id)}
 						<button
 							onclick={() => selectStudy(study)}
