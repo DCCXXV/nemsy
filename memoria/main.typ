@@ -1,7 +1,3 @@
-// TFG - Nemsy
-// Marco Antonio Pérez Neira
-// Universidad Complutense de Madrid - Facultad de Informática
-
 #import "template.typ": *
 #import "config.typ": *
 
@@ -24,33 +20,22 @@
 )
 
 // CAPÍTULOS
-
-// capítulo 1: Introducción
 #include "capitulos/01-introduccion.typ"
-
-// capítulo 2: Estado de la Cuestión
 #include "capitulos/02-estado-cuestion.typ"
-
-// capítulo 3: Descripción del Trabajo
 #include "capitulos/03-descripcion-trabajo.typ"
-
-// capítulo 4: Conclusiones y Trabajo Futuro
 #include "capitulos/04-conclusiones.typ"
 
 #pagebreak()
-#heading(level: 1, numbering: none)[Bibliografía]
-
-// recordar crear referencias.bib para la bibliografía integrada de typst
-// #bibliography("referencias.bib", style: "ieee")
+#bibliography("referencias.bib", title: "Bibliografía", style: "ieee")
 
 // APENDICES
 #pagebreak()
 #set heading(numbering: (..nums) => {
-    if nums.pos().len() == 1 {
-        "Apéndice " + numbering("A", ..nums)
-    } else {
-        numbering("A.1", ..nums)
-    }
+  if nums.pos().len() == 1 {
+    "Apéndice " + numbering("A", ..nums)
+  } else {
+    numbering("A.1", ..nums)
+  }
 })
 #counter(heading).update(0)
 
