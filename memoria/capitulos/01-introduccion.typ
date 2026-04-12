@@ -25,7 +25,7 @@ Wuolah, la plataforma para compartir apuntes mejor integrada y más conocida, so
 Su principal problema es el rendimiento. Al realizar un análisis de la plataforma utilizando Lighthouse, una herramienta de código abierto de Google que audita el rendimiento, la accesibilidad, mejores prácticas y el SEO de cualquier página web (@fig:lighthouse), se observan unos resultados bastante concluyentes.
 
 #figure(
-  image("../imagenes/lighthouse_wuolah.png", width: 75%),
+  image("../imagenes/lighthouse_wuolah.png", width: 100%),
   caption: [Análisis del rendimiento de wuolah.com con Google Lighthouse.],
 ) <fig:lighthouse>
 
@@ -40,7 +40,7 @@ Además, este modelo de incentivos tiene otra consecuencia negativa para las car
 Por último, cabe mencionar también cómo la interfaz actual refleja un problema común en plataformas que reciben un porcentaje significativo de uso desde dispositivos móviles: para facilitar la responsividad, la experiencia en escritorio se ha visto degradada. Como se puede observar en la @fig:ssw1, con una resolución estándar de portátil de 1920x1080 al 100% de zoom, apenas la mitad de la pantalla se dedica al contenido, dejando las barras laterales sobrantes para anuncios. De esa mitad usada, algo más de un tercio está ocupado por una barra lateral con información de poco valor, dejando apenas una fracción del ancho total de la pantalla para lo que el usuario realmente quiere ver.
 
 #figure(
-  image("../imagenes/screenshot_wuolah1.png", width: 75%),
+  image("../imagenes/screenshot_wuolah1.png", width: 100%),
   caption: [Captura de pantalla de wuolah.com mostrando la interfaz actual.],
 ) <fig:ssw1>
 
@@ -60,7 +60,15 @@ El objetivo principal de este proyecto es crear y desplegar un prototipo de una 
 
 == Plan de trabajo
 
-// TODO: describir el plan de trabajo seguido
+El desarrollo del proyecto se ha llevado a cabo siguiendo un enfoque iterativo e incremental con una metodología API-first: para cada funcionalidad se implementaba primero el endpoint en el backend y después la interfaz correspondiente. Para la gestión de tareas se utilizó un tablero Kanban en Taiga. Las fases principales del desarrollo fueron las siguientes:
+
++ *Prototipado inicial (septiembre - octubre 2025).* Elección de tecnologías, implementación de la autenticación con Google OAuth2, primeras iteraciones del diseño de la interfaz y configuración inicial de la base de datos y el flujo de onboarding.
+
++ *Diseño de la arquitectura e implementación de las funcionalidades principales (enero - febrero 2026).* Definición de la API REST, sustituyendo un enfoque inicial con GraphQL que resultó innecesario para el proyecto. Desarrollo del scraper de la UCM, implementación de la subida, descarga y previsualización de recursos, soporte para múltiples archivos por recurso y diseño del sistema de vistas.
+
++ *Funcionalidades avanzadas y refinamiento (marzo 2026).* Perfiles de usuario, búsqueda global con Full Text Search, integración de universidades mediante JetBrains SWOT y web scraping, y mejoras generales de la interfaz.
+
++ *Pruebas, despliegue y documentación (abril 2026).* Tests unitarios del backend, tests unitarios y end to end del frontend con Playwright, configuración de Docker y Docker Compose, despliegue en VPS y redacción de la memoria.
 
 == Estructura del documento
 
