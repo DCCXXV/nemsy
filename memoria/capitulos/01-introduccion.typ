@@ -74,6 +74,6 @@ El desarrollo del proyecto se ha llevado a cabo siguiendo un enfoque iterativo e
 
 Este documento está estructurado de la siguiente manera:
 
-- *Capítulo 2. Estado de la Cuestión:* Se analizan las plataformas existentes y las tecnologías evaluadas para el desarrollo del proyecto.
-- *Capítulo 3. Descripción del Trabajo:* Se describe en detalle la arquitectura, el diseño y la implementación de la plataforma.
+- *Capítulo 2. Estado de la Cuestión:* Se analizan las plataformas existentes para compartir recursos académicos.
+- *Capítulo 3. Descripción del Trabajo:* Se justifican las decisiones tecnológicas y se describe en detalle la arquitectura, el diseño y la implementación de la plataforma.
 - *Capítulo 4. Conclusiones y Trabajo Futuro:* Se presentan las conclusiones y las posibles líneas de mejora.

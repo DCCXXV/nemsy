@@ -62,17 +62,3 @@ La interfaz (@fig:docsity) es limpia pero algo más confusa que las de Wuolah o 
 === Conclusiones
 
 Las tres plataformas analizadas comparten un objetivo común pero presentan carencias distintas. Wuolah ofrece la mejor integración con centros educativos españoles pero a costa del rendimiento y la experiencia de usuario. Studocu destaca por su interfaz y su alcance global, aunque su integración es más superficial y su contenido en España es limitado. Docsity, por su parte, tiene un modelo de incentivos menos intrusivo pero una organización del contenido poco precisa. Ninguna de las tres combina una integración completa con centros educativos, un buen rendimiento y una experiencia de usuario libre de publicidad o restricciones artificiales, lo que justifica la propuesta desarrollada en este trabajo.
-
-== Tecnologías evaluadas
-
-=== Backend
-
-Comparativa de tecnologías para el backend...
-
-=== Frontend
-
-Evaluación de frameworks frontend...
-
-=== Base de datos
-
-Consideraciones sobre sistemas de gestión de bases de datos...

@@ -1,11 +1,10 @@
 = Conclusiones y Trabajo Futuro
 
 #block(
-    fill: rgb("#f0f0f0"),
-    inset: 1em,
-    radius: 4pt,
+  fill: rgb("#f0f0f0"),
+  inset: 1em,
 )[
-    *Resumen:* Este capítulo presenta las conclusiones extraídas del proyecto y las líneas de trabajo futuro.
+  *Resumen:* Este capítulo presenta las conclusiones extraídas del proyecto y las líneas de trabajo futuro.
 ]
 
 == Conclusiones
