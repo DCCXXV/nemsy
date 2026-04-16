@@ -13,7 +13,7 @@ import (
 type Querier interface {
 	AdminDeleteResource(ctx context.Context, id int32) error
 	CreateReport(ctx context.Context, arg CreateReportParams) (Report, error)
-	CreateResource(ctx context.Context, arg CreateResourceParams) (Resource, error)
+	CreateResource(ctx context.Context, arg CreateResourceParams) (CreateResourceRow, error)
 	CreateResourceFile(ctx context.Context, arg CreateResourceFileParams) (ResourceFile, error)
 	CreateSubject(ctx context.Context, arg CreateSubjectParams) (Subject, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -21,14 +21,14 @@ type Querier interface {
 	DeleteReportsByResource(ctx context.Context, resourceID int32) error
 	DeleteResource(ctx context.Context, arg DeleteResourceParams) error
 	DeleteResourceFile(ctx context.Context, id int32) error
-	GetResource(ctx context.Context, id int32) (Resource, error)
+	GetResource(ctx context.Context, id int32) (GetResourceRow, error)
 	GetResourceFile(ctx context.Context, id int32) (ResourceFile, error)
 	GetResourceWithOwner(ctx context.Context, id int32) (GetResourceWithOwnerRow, error)
 	GetStudy(ctx context.Context, id int32) (Study, error)
 	GetSubject(ctx context.Context, id int32) (Subject, error)
-	GetUniversity(ctx context.Context, id int32) (University, error)
-	GetUniversityByDomain(ctx context.Context, domain string) (University, error)
-	GetUniversityByDomainSuffix(ctx context.Context, domain string) (University, error)
+	GetUniversity(ctx context.Context, id int32) (GetUniversityRow, error)
+	GetUniversityByDomain(ctx context.Context, domain string) (GetUniversityByDomainRow, error)
+	GetUniversityByDomainSuffix(ctx context.Context, domain string) (GetUniversityByDomainSuffixRow, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
@@ -39,9 +39,9 @@ type Querier interface {
 	IncrementDownloadCount(ctx context.Context, id int32) error
 	ListFilesByResource(ctx context.Context, resourceID int32) ([]ResourceFile, error)
 	ListReports(ctx context.Context, arg ListReportsParams) ([]ListReportsRow, error)
-	ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Resource, error)
+	ListResourcesByOwner(ctx context.Context, ownerID int32) ([]ListResourcesByOwnerRow, error)
 	ListResourcesByOwnerWithSubject(ctx context.Context, ownerID int32) ([]ListResourcesByOwnerWithSubjectRow, error)
-	ListResourcesBySubject(ctx context.Context, subjectID int32) ([]Resource, error)
+	ListResourcesBySubject(ctx context.Context, subjectID int32) ([]ListResourcesBySubjectRow, error)
 	ListResourcesBySubjectWithOwner(ctx context.Context, subjectID int32) ([]ListResourcesBySubjectWithOwnerRow, error)
 	ListResourcesBySubjectWithOwnerPaginated(ctx context.Context, arg ListResourcesBySubjectWithOwnerPaginatedParams) ([]ListResourcesBySubjectWithOwnerPaginatedRow, error)
 	ListS3KeysByResource(ctx context.Context, resourceID int32) ([]string, error)

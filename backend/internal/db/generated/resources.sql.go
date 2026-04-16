@@ -26,7 +26,7 @@ INSERT INTO resources (
 ) VALUES (
     $1, $2, $3, $4
 )
-RETURNING id, owner_id, subject_id, title, description, created_at, download_count, search_vector
+RETURNING id, owner_id, subject_id, title, description, created_at, download_count
 `
 
 type CreateResourceParams struct {
@@ -36,14 +36,24 @@ type CreateResourceParams struct {
 	Description pgtype.Text
 }
 
-func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) (Resource, error) {
+type CreateResourceRow struct {
+	ID            int32
+	OwnerID       int32
+	SubjectID     int32
+	Title         string
+	Description   pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
+}
+
+func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) (CreateResourceRow, error) {
 	row := q.db.QueryRow(ctx, createResource,
 		arg.OwnerID,
 		arg.SubjectID,
 		arg.Title,
 		arg.Description,
 	)
-	var i Resource
+	var i CreateResourceRow
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
@@ -52,7 +62,6 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 		&i.Description,
 		&i.CreatedAt,
 		&i.DownloadCount,
-		&i.SearchVector,
 	)
 	return i, err
 }
@@ -72,13 +81,23 @@ func (q *Queries) DeleteResource(ctx context.Context, arg DeleteResourceParams) 
 }
 
 const getResource = `-- name: GetResource :one
-SELECT id, owner_id, subject_id, title, description, created_at, download_count, search_vector FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetResource(ctx context.Context, id int32) (Resource, error) {
+type GetResourceRow struct {
+	ID            int32
+	OwnerID       int32
+	SubjectID     int32
+	Title         string
+	Description   pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
+}
+
+func (q *Queries) GetResource(ctx context.Context, id int32) (GetResourceRow, error) {
 	row := q.db.QueryRow(ctx, getResource, id)
-	var i Resource
+	var i GetResourceRow
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
@@ -87,7 +106,6 @@ func (q *Queries) GetResource(ctx context.Context, id int32) (Resource, error) {
 		&i.Description,
 		&i.CreatedAt,
 		&i.DownloadCount,
-		&i.SearchVector,
 	)
 	return i, err
 }
@@ -138,20 +156,30 @@ func (q *Queries) IncrementDownloadCount(ctx context.Context, id int32) error {
 }
 
 const listResourcesByOwner = `-- name: ListResourcesByOwner :many
-SELECT id, owner_id, subject_id, title, description, created_at, download_count, search_vector FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE owner_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Resource, error) {
+type ListResourcesByOwnerRow struct {
+	ID            int32
+	OwnerID       int32
+	SubjectID     int32
+	Title         string
+	Description   pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
+}
+
+func (q *Queries) ListResourcesByOwner(ctx context.Context, ownerID int32) ([]ListResourcesByOwnerRow, error) {
 	rows, err := q.db.Query(ctx, listResourcesByOwner, ownerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Resource
+	var items []ListResourcesByOwnerRow
 	for rows.Next() {
-		var i Resource
+		var i ListResourcesByOwnerRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OwnerID,
@@ -160,7 +188,6 @@ func (q *Queries) ListResourcesByOwner(ctx context.Context, ownerID int32) ([]Re
 			&i.Description,
 			&i.CreatedAt,
 			&i.DownloadCount,
-			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -229,20 +256,30 @@ func (q *Queries) ListResourcesByOwnerWithSubject(ctx context.Context, ownerID i
 }
 
 const listResourcesBySubject = `-- name: ListResourcesBySubject :many
-SELECT id, owner_id, subject_id, title, description, created_at, download_count, search_vector FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE subject_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListResourcesBySubject(ctx context.Context, subjectID int32) ([]Resource, error) {
+type ListResourcesBySubjectRow struct {
+	ID            int32
+	OwnerID       int32
+	SubjectID     int32
+	Title         string
+	Description   pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	DownloadCount int32
+}
+
+func (q *Queries) ListResourcesBySubject(ctx context.Context, subjectID int32) ([]ListResourcesBySubjectRow, error) {
 	rows, err := q.db.Query(ctx, listResourcesBySubject, subjectID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Resource
+	var items []ListResourcesBySubjectRow
 	for rows.Next() {
-		var i Resource
+		var i ListResourcesBySubjectRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OwnerID,
@@ -251,7 +288,6 @@ func (q *Queries) ListResourcesBySubject(ctx context.Context, subjectID int32) (
 			&i.Description,
 			&i.CreatedAt,
 			&i.DownloadCount,
-			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}

@@ -10,54 +10,57 @@ import (
 )
 
 const getUniversity = `-- name: GetUniversity :one
-SELECT id, name, domain, search_vector FROM universities
+SELECT id, name, domain FROM universities
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUniversity(ctx context.Context, id int32) (University, error) {
+type GetUniversityRow struct {
+	ID     int32
+	Name   string
+	Domain string
+}
+
+func (q *Queries) GetUniversity(ctx context.Context, id int32) (GetUniversityRow, error) {
 	row := q.db.QueryRow(ctx, getUniversity, id)
-	var i University
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Domain,
-		&i.SearchVector,
-	)
+	var i GetUniversityRow
+	err := row.Scan(&i.ID, &i.Name, &i.Domain)
 	return i, err
 }
 
 const getUniversityByDomain = `-- name: GetUniversityByDomain :one
-SELECT id, name, domain, search_vector FROM universities
+SELECT id, name, domain FROM universities
 WHERE domain = $1 LIMIT 1
 `
 
-func (q *Queries) GetUniversityByDomain(ctx context.Context, domain string) (University, error) {
+type GetUniversityByDomainRow struct {
+	ID     int32
+	Name   string
+	Domain string
+}
+
+func (q *Queries) GetUniversityByDomain(ctx context.Context, domain string) (GetUniversityByDomainRow, error) {
 	row := q.db.QueryRow(ctx, getUniversityByDomain, domain)
-	var i University
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Domain,
-		&i.SearchVector,
-	)
+	var i GetUniversityByDomainRow
+	err := row.Scan(&i.ID, &i.Name, &i.Domain)
 	return i, err
 }
 
 const getUniversityByDomainSuffix = `-- name: GetUniversityByDomainSuffix :one
-SELECT id, name, domain, search_vector FROM universities
+SELECT id, name, domain FROM universities
 WHERE $1 = domain OR $1 LIKE '%.' || domain
 LIMIT 1
 `
 
-func (q *Queries) GetUniversityByDomainSuffix(ctx context.Context, domain string) (University, error) {
+type GetUniversityByDomainSuffixRow struct {
+	ID     int32
+	Name   string
+	Domain string
+}
+
+func (q *Queries) GetUniversityByDomainSuffix(ctx context.Context, domain string) (GetUniversityByDomainSuffixRow, error) {
 	row := q.db.QueryRow(ctx, getUniversityByDomainSuffix, domain)
-	var i University
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Domain,
-		&i.SearchVector,
-	)
+	var i GetUniversityByDomainSuffixRow
+	err := row.Scan(&i.ID, &i.Name, &i.Domain)
 	return i, err
 }
 
