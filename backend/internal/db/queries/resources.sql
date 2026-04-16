@@ -1,5 +1,5 @@
 -- name: GetResource :one
-SELECT * FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE id = $1 LIMIT 1;
 
 -- name: GetResourceWithOwner :one
@@ -11,7 +11,7 @@ JOIN users u ON r.owner_id = u.id
 WHERE r.id = $1 LIMIT 1;
 
 -- name: ListResourcesBySubject :many
-SELECT * FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE subject_id = $1
 ORDER BY created_at DESC;
 
@@ -35,7 +35,7 @@ ORDER BY r.created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListResourcesByOwner :many
-SELECT * FROM resources
+SELECT id, owner_id, subject_id, title, description, created_at, download_count FROM resources
 WHERE owner_id = $1
 ORDER BY created_at DESC;
 
@@ -56,7 +56,7 @@ INSERT INTO resources (
 ) VALUES (
     $1, $2, $3, $4
 )
-RETURNING *;
+RETURNING id, owner_id, subject_id, title, description, created_at, download_count;
 
 -- name: IncrementDownloadCount :exec
 UPDATE resources SET download_count = download_count + 1 WHERE id = $1;
