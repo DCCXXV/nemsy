@@ -21,6 +21,13 @@
 
 // CAPÍTULOS
 #include "capitulos/01-introduccion.typ"
+#set text(lang: "en")
+#counter(heading).update(0)
+#include "capitulos/05-introduction-en.typ"
+#set text(lang: "es")
+#counter(heading).update(1)
+#counter(figure).update(2)
+
 #include "capitulos/02-estado-cuestion.typ"
 #include "capitulos/03-descripcion-trabajo.typ"
 #include "capitulos/04-conclusiones.typ"

@@ -18,7 +18,7 @@
 
 Como estudiante de ingeniería de software utilizo una gran cantidad de software distinto en mi día a día; algunos funcionan mejor y otros resultan frustrantes. Es precisamente uno de los segundos lo que me motivó a realizar este Trabajo de Fin de Grado.
 
-Antes de Wuolah, las alternativas se limitaban a plataformas genéricas como Docsity o StudyLib, que no se habían publicitado en España por lo que la cantidad de contenido era casi inexistente, y que tampoco se integraban con centros educativos concretos, o a soluciones informales como grupos de mensajería y drives compartidos.
+Antes de Wuolah, las alternativas se limitaban a plataformas genéricas como Docsity o StudyLib, que no se habían orientado al mercado español y cuyo contenido era muy escaso o prácticamente inexistente según la plataforma, y que tampoco se integraban con centros educativos concretos, o a soluciones informales como grupos de mensajería y _drives_ compartidos.
 
 Wuolah, la plataforma para compartir apuntes mejor integrada y más conocida, solucionó un problema real al ver la necesidad de los estudiantes de tener un lugar donde compartir y encontrar apuntes relevantes para sus asignaturas concretas, de su grado o estudio, en su centro educativo. A pesar de su popularidad el modelo actual que sigue presenta una serie de problemas que perjudican tanto la experiencia de usuario como la calidad del intercambio de información.
 
@@ -44,7 +44,7 @@ Por último, cabe mencionar también cómo la interfaz actual refleja un problem
   caption: [Captura de pantalla de wuolah.com mostrando la interfaz actual.],
 ) <fig:ssw1>
 
-Este trabajo busca solucionar todos estos problemas y tiene como objetivo el diseño y desarrollo de un prototipo de plataforma alternativa. La solución propuesta mejorará el rendimiento usando una arquitectura ligera y eficiente con un backend en Go y un frontend con SvelteKit. Para reducir los costes de mantenimiento se usarán servidores privados virtuales (VPS) en vez de plataformas en la nube como AWS. Y se eliminará la publicidad invasiva y los incentivos monetarios para fomentar la colaboración genuina y la compartición de recursos en múltiples formatos.
+Este trabajo busca solucionar todos estos problemas y tiene como objetivo el diseño y desarrollo de un prototipo de plataforma alternativa. La solución propuesta mejorará el rendimiento usando una arquitectura ligera y eficiente con un _backend_ en Go y un _frontend_ con SvelteKit. Para reducir los costes de mantenimiento se usarán servidores privados virtuales (VPS) en vez de plataformas en la nube como AWS. Y se eliminará la publicidad invasiva y los incentivos monetarios para fomentar la colaboración genuina y la compartición de recursos en múltiples formatos.
 
 == Objetivos
 
@@ -60,15 +60,15 @@ El objetivo principal de este proyecto es crear y desplegar un prototipo de una 
 
 == Plan de trabajo
 
-El desarrollo del proyecto se ha llevado a cabo siguiendo un enfoque iterativo e incremental con una metodología API-first: para cada funcionalidad se implementaba primero el endpoint en el backend y después la interfaz correspondiente. Para la gestión de tareas se utilizó un tablero Kanban en Taiga. Las fases principales del desarrollo fueron las siguientes:
+El desarrollo del proyecto se ha llevado a cabo siguiendo un enfoque iterativo e incremental con una metodología _API-first_: para cada funcionalidad se implementaba primero el _endpoint_ en el _backend_ y después la interfaz correspondiente. Para la gestión de tareas se utilizó un tablero Kanban en Taiga. Las fases principales del desarrollo fueron las siguientes:
 
-+ *Prototipado inicial (septiembre - octubre 2025).* Elección de tecnologías, implementación de la autenticación con Google OAuth2, primeras iteraciones del diseño de la interfaz y configuración inicial de la base de datos y el flujo de onboarding.
++ *Prototipado inicial (septiembre - octubre 2025).* Elección de tecnologías, implementación de la autenticación con Google OAuth2, primeras iteraciones del diseño de la interfaz y configuración inicial de la base de datos y el flujo de _onboarding_.
 
-+ *Diseño de la arquitectura e implementación de las funcionalidades principales (enero - febrero 2026).* Definición de la API REST, sustituyendo un enfoque inicial con GraphQL que resultó innecesario para el proyecto. Desarrollo del scraper de la UCM, implementación de la subida, descarga y previsualización de recursos, soporte para múltiples archivos por recurso y diseño del sistema de vistas.
++ *Diseño de la arquitectura e implementación de las funcionalidades principales (enero - febrero 2026).* Definición de la API REST, sustituyendo un enfoque inicial con GraphQL que resultó innecesario para el proyecto. Desarrollo del _scraper_ de la UCM, implementación de la subida, descarga y previsualización de recursos, soporte para múltiples archivos por recurso y diseño del sistema de vistas.
 
-+ *Funcionalidades avanzadas y refinamiento (marzo 2026).* Perfiles de usuario, búsqueda global con Full Text Search, integración de universidades mediante JetBrains SWOT y web scraping, y mejoras generales de la interfaz.
++ *Funcionalidades avanzadas y refinamiento (marzo 2026).* Perfiles de usuario, búsqueda global con _Full Text Search_, integración de universidades mediante JetBrains SWOT y _web scraping_, y mejoras generales de la interfaz.
 
-+ *Pruebas, despliegue y documentación (abril 2026).* Tests unitarios del backend, tests unitarios y end to end del frontend con Playwright, configuración de Docker y Docker Compose, despliegue en VPS y redacción de la memoria.
++ *Pruebas, despliegue y documentación (abril 2026).* Tests unitarios del backend, tests unitarios y _end to end_ del _frontend_ con Playwright, configuración de Docker y Docker Compose, despliegue en VPS y redacción de la memoria.
 
 == Estructura del documento
 

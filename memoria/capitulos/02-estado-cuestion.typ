@@ -42,7 +42,7 @@ Dejando ese detalle de lado, como se puede ver en la @fig:studocu, la interfaz d
   caption: [Captura de pantalla de Studocu.],
 ) <fig:studocu>
 
-Por último, aunque lejos del alcance de este TFG, cabe destacar que Studocu cuenta con una gran implementación de inteligencia artificial que recopila automáticamente la información de la asignatura y ayuda al estudiante a repasar con ese contexto. Wuolah también ofrece una funcionalidad similar, aunque todavía en fase beta y más limitada, siendo un chatbot al que se le pueden adjuntar apuntes concretos.
+Por último, aunque lejos del alcance de este TFG, cabe destacar que Studocu cuenta con una gran implementación de inteligencia artificial que recopila automáticamente la información de la asignatura y ayuda al estudiante a repasar con ese contexto. Wuolah también ofrece una funcionalidad similar, aunque todavía en fase beta y más limitada, siendo un _chatbot_ al que se le pueden adjuntar apuntes concretos.
 
 === Docsity
 
