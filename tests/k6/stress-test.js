@@ -1,7 +1,7 @@
 /**
  * nemsy API stress test
  *
- *   1. JWT_SECRET=... go run go run ./cmd/gen-token <user_id>
+ *   1. JWT_SECRET=... go run ./cmd/gen-token <user_id>
  *   2. Get a subject ID and resource ID from the DB or the app UI
  *   3. k6 run \
  *        -e BASE_URL=https://api.nemsy.org \

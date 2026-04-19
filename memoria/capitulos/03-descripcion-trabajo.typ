@@ -1,3 +1,8 @@
+#import "@preview/fletcher:0.5.8": diagram, edge, node
+#import "@preview/chronos:0.3.0" as chronos
+#import "@preview/codly:1.3.0": *
+#show: codly-init.with()
+
 = Descripción del Trabajo
 
 #block(
@@ -185,7 +190,156 @@ Docker Compose permite definir todos los servicios de la aplicación (backend, f
 
 == Arquitectura del sistema
 
-Descripción de la arquitectura...
+Nemsy sigue una arquitectura cliente-servidor de tres capas. El frontend es una _Single Page Application_ (SPA) desarrollada con SvelteKit que se comunica con el backend exclusivamente a través de una API REST. El backend, implementado en Go con el router Chi, actúa como única puerta de entrada al sistema gestionando la autenticación, la lógica de negocio y el acceso a los dos sistemas de persistencia, PostgreSQL y un almacenamiento de objetos compatible con S3. El conjunto se despliega mediante Docker Compose en un VPS, de forma que el entorno de producción es reproducible e idéntico al de desarrollo local.
+
+#figure(
+  {
+    diagram(
+      node-stroke: .7pt,
+      node-corner-radius: 4pt,
+      node-inset: 8pt,
+      spacing: (-1cm, 2cm),
+      node((0, 0), align(center)[*SvelteKit SPA*], name: <spa>, fill: rgb("#dbeafe")),
+      node((0, 2), align(center)[*Go / Chi* \ _(API REST)_], name: <api>, fill: rgb("#dcfce7")),
+      node((2, 1), align(center)[*Google OAuth2*], name: <google>, fill: rgb("#fef9c3"), stroke: (
+        dash: "dashed",
+      )),
+      node((-1, 4), align(center)[*PostgreSQL*], name: <db>, fill: rgb("#dcfce7")),
+      node((1, 4), align(center)[*Hetzner S3* \ _(Object Storage)_], name: <s3>, fill: rgb("#fef9c3"), stroke: (
+        dash: "dashed",
+      )),
+      edge(<spa>, <api>, "<->", [REST / JSON \ Cookie JWT], label-side: right, label-sep: 6pt),
+      edge(<spa>, <google>, "->", [redirect], label-side: left, label-sep: 6pt),
+      edge(<google>, <api>, "->", [callback], label-side: left, label-sep: 6pt),
+      edge(<api>, <db>, "->", [pgx / sqlc], label-side: right, label-sep: 6pt),
+      edge(<api>, <s3>, "->", [minio-go], label-side: left, label-sep: 6pt),
+    )
+    v(0.8em)
+    align(center, grid(
+      columns: 3,
+      column-gutter: 1.5em,
+      row-gutter: 0.4em,
+      box(fill: rgb("#dbeafe"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#dcfce7"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#fef9c3"), stroke: (dash: "dashed", thickness: .7pt), radius: 2pt, width: 0.75em, height: 0.75em),
+
+      text(size: 8pt)[Navegador], text(size: 8pt)[VPS], text(size: 8pt)[Servicio externo],
+    ))
+  },
+  caption: [Diagrama de componentes de la arquitectura de Nemsy.],
+) <fig:arquitectura>
+
+=== Frontend
+
+El frontend está construido con SvelteKit, que organiza la aplicación en torno a un sistema de enrutamiento basado en el sistema de ficheros: cada carpeta dentro de `src/routes/` define una ruta, y los ficheros con nombres especiales (`+page.svelte`, `+layout.svelte`, `+page.server.ts`) tienen roles concretos dentro del ciclo de vida de la página. La @tab:rutas recoge las rutas de la aplicación.
+
+#figure(
+  {
+    set par(justify: false)
+    table(
+      columns: (auto, 1fr),
+      align: left,
+      table.header([*Ruta*], [*Descripción*]),
+      [`/`],
+      [Página de inicio: _hero_ de bienvenida para usuarios no autenticados; lista de asignaturas y recursos para usuarios autenticados.],
+
+      [`/search`], [Búsqueda global de recursos mediante Full Text Search.],
+      [`/create`], [Formulario de subida de un nuevo recurso con sus archivos.],
+      [`/user/[slug]`], [Perfil público de un usuario y sus recursos compartidos.],
+      [`/auth`], [Pantalla de inicio de sesión con Google OAuth2.],
+      [`/admin`], [Panel de administración para gestionar reportes (solo administradores).],
+    )
+  },
+  caption: [Rutas de la aplicación frontend.],
+) <tab:rutas>
+
+El fichero `+layout.svelte` de la raíz actúa como _shell_ de toda la aplicación y define dos disposiciones de navegación completamente distintas según el dispositivo. En escritorio se muestra una barra de navegación superior clásica con los enlaces principales centrados y el perfil de usuario a la derecha. En móvil esta barra desaparece y es sustituida por una barra de navegación fija en la parte inferior de la pantalla, siguiendo el patrón habitual en aplicaciones móviles, acompañada de un botón de acción flotante (FAB) para subir un recurso. Esta separación es un cambio de paradigma de navegación adaptado a cada contexto de uso. La interfaz también se adapta en función del estado de autenticación expuesto por `data.me`. La ruta `/auth` queda excluida de este shell mediante su propio `+layout.svelte` independiente, de forma que la pantalla de inicio de sesión se renderiza sin navegación.
+
+Las páginas que necesitan datos del backend utilizan un fichero `+page.server.ts` con una función `load`, que SvelteKit ejecuta en el servidor antes de renderizar la página. La función accede a las cookies de sesión y al resultado del `load` del layout padre mediante `parent()`, evitando repetir la llamada de autenticación en cada página y garantizando que la primera carga llegue al navegador ya con los datos.
+
+=== Backend
+
+El backend es un servidor HTTP escrito en Go que expone la API REST en el puerto 8080. Está organizado en paquetes por dominio funcional, cada uno con su propio _handler_. Todos los _handlers_ reciben una instancia del struct `App`, que agrupa las tres dependencias compartidas del sistema: el cliente de base de datos (`Queries`, generado por sqlc), el _pool_ de conexiones a PostgreSQL (`DB`, para transacciones) y el cliente S3 (`Storage`). Este patrón evita la necesidad de un framework de inyección de dependencias, manteniendo el control explícito sobre las dependencias sin añadir capas de abstracción innecesarias.
+
+#figure(
+  ```go
+  type App struct {
+      DB      *pgxpool.Pool
+      Queries QuerierWithTx
+      Storage *storage.S3Client
+  }
+  ```,
+  caption: [Struct `App` que agrupa las dependencias compartidas del backend.],
+  supplement: [Código],
+) <cod:app-struct>
+
+
+Los paquetes del backend son los siguientes:
+
+#figure(
+  {
+    set par(justify: false)
+    table(
+      columns: (auto, 1fr),
+      align: left,
+      table.header([*Paquete*], [*Descripción*]),
+      [`auth`],
+      [Implementa el flujo OAuth2 con Google, la generación y validación de tokens JWT y el middleware de autenticación. También expone el middleware `AdminOnly` para restringir el acceso a rutas administrativas.],
+
+      [`resources`],
+      [Gestiona el ciclo de vida completo de los recursos: creación con subida de archivos a S3, consulta, descarga (tanto del paquete completo como de ficheros individuales), eliminación y sistema de reportes.],
+
+      [`users`],
+      [Expone el perfil del usuario autenticado y permite actualizar su universidad, estudio y asignaturas fijadas.],
+
+      [`studies`\ `universities`],
+      [Proporcionan endpoints de consulta y búsqueda por texto sobre estudios y universidades.],
+
+      [`admin`],
+      [Rutas protegidas exclusivamente para administradores que permiten revisar y gestionar los reportes de recursos.],
+
+      [`storage`],
+      [Encapsula el cliente `minio-go` para interactuar con cualquier proveedor S3-compatible, configurable mediante variables de entorno.],
+
+      [`db/generated`],
+      [Código Go generado automáticamente por sqlc a partir de las consultas SQL escritas a mano en el esquema.],
+    )
+  },
+  caption: [Paquetes del backend y su responsabilidad.],
+) <tab:paquetes>
+
+=== Autenticación
+
+La autenticación se delega completamente a Google OAuth2 por lo que el usuario no crea credenciales propias en Nemsy, sino que inicia sesión con su cuenta de Google. El flujo completo se ilustra en la @fig:oauth-sequence.
+
+#figure(
+  {
+    set text(size: 10pt)
+    pad(x: -1cm, chronos.diagram({
+      chronos._par("nav", display-name: "Navegador")
+      chronos._par("api", display-name: "Backend")
+      chronos._par("google", display-name: "Google OAuth2")
+      chronos._par("db", display-name: "PostgreSQL")
+
+      chronos._seq("nav", "api", comment: "GET /auth/login")
+      chronos._seq("api", "nav", comment: "302 → accounts.google.com", dashed: true)
+      chronos._seq("nav", "google", comment: "solicitud de autorización")
+      chronos._seq("google", "nav", comment: "pantalla de autenticación", dashed: true)
+      chronos._seq("nav", "google", comment: "credenciales del usuario")
+      chronos._seq("google", "api", comment: "GET /auth/callback?code=...")
+      chronos._seq("api", "google", comment: "intercambio código → token")
+      chronos._seq("google", "api", comment: "access token + perfil de usuario", dashed: true)
+      chronos._seq("api", "db", comment: "upsert usuario")
+      chronos._seq("db", "api", comment: "ok", dashed: true)
+      chronos._seq("api", "nav", comment: "Set-Cookie JWT + 302 → /", dashed: true)
+    }))
+  },
+  caption: [Diagrama de secuencia del flujo de autenticación con Google OAuth2.],
+) <fig:oauth-sequence>
+
+Una vez completado el flujo, las rutas protegidas pasan por el middleware `AuthMiddleware`, que valida la cookie JWT en cada petición. La detección del centro educativo se realiza a partir del dominio del correo, si el usuario se autentica con una cuenta `@ucm.es`, se asocia automáticamente a la Universidad Complutense de Madrid sin necesidad de seleccionarla manualmente.
+
+Esta separación se refleja directamente en la estructura del router ya que Chi permite anidar grupos de rutas con middlewares independientes, de forma que las rutas públicas de autenticación, las rutas protegidas por JWT y las rutas exclusivas de administración quedan aisladas entre sí.
 
 == Diseño de la base de datos
 
@@ -195,10 +349,238 @@ Explicación del esquema de base de datos...
 
 Detalles de implementación del backend en Go...
 
+#figure(
+  ```go
+  // rutas públicas (sin autenticación)
+  r.Get("/auth/login",    authHandler.LoginHandler)
+  r.Get("/auth/callback", authHandler.CallbackHandler)
+  r.Post("/auth/logout",  authHandler.LogoutHandler)
+
+  // rutas protegidas (JWT validado en cada petición)
+  r.Group(func(r chi.Router) {
+      r.Use(mw.Middleware)
+      r.Get("/api/me", usersHandler.MeHandler)
+      // ...
+
+      // solo administradores
+      r.Group(func(r chi.Router) {
+          r.Use(auth.AdminOnly)
+          r.Get("/api/admin/reports", adminHandler.ListReports)
+      })
+  })
+  ```,
+  caption: [Estructura de grupos de rutas en Chi con middlewares anidados.],
+  supplement: [Código],
+) <cod:chi-routes>
+
 == Implementación del frontend
 
 Detalles de implementación del frontend en SvelteKit...
 
 == Pruebas y validación
 
-Estrategia de testing...
+Para garantizar la corrección y el rendimiento de la plataforma se aplicaron tres niveles de pruebas complementarios, cubriendo los tests unitarios del backend con el paquete `testing` de Go, los tests unitarios y _end to end_ del frontend con Vitest y Playwright, y una prueba de carga con k6 sobre la API desplegada en producción. Esta última no solo valida que el sistema no falla bajo carga, sino que sirve como demostración empírica del rendimiento de la plataforma, aportando los datos que respaldan uno de sus objetivos centrales, ofrecer una experiencia rápida como alternativa a Wuolah.
+
+=== Tests unitarios del backend
+
+Los tests unitarios del backend están escritos con el paquete `testing` de la librería estándar de Go y `httptest` para simular peticiones HTTP sin levantar un servidor real. Cada paquete define un `mockQuerier` que implementa la interfaz `QuerierWithTx` generada por sqlc, de forma que los tests son completamente independientes de la base de datos y se ejecutan de forma determinista.
+
+Los tests del paquete `auth` cubren la generación y verificación de tokens JWT, la extracción de claims y el comportamiento del middleware ante distintos escenarios, incluyendo petición sin cookie, token con firma incorrecta y token válido. Este último caso verifica además que el middleware inyecta correctamente la información del usuario en el contexto de la petición.
+
+#figure(
+  ```go
+  func TestAuthMiddleware_ValidToken(t *testing.T) {
+      secret := []byte("testsecret")
+      tokenStr, _ := GenerateJWTWithUserID(
+          UserInfo{GoogleSub: "123456", Email: "test@example.com"},
+          42, "user", secret,
+      )
+
+      req := httptest.NewRequest("GET", "/protected", nil)
+      req.AddCookie(&http.Cookie{Name: "session_token", Value: tokenStr})
+      rr := httptest.NewRecorder()
+
+      mw := &AuthMiddleware{Secret: secret}
+      handlerCalled := false
+
+      mw.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+          handlerCalled = true
+          w.WriteHeader(http.StatusOK)
+      })).ServeHTTP(rr, req)
+
+      if rr.Code != http.StatusOK { t.Errorf("expected 200, got %d", rr.Code) }
+      if !handlerCalled { t.Error("protected handler was not called") }
+  }
+  ```,
+  caption: [Test del middleware de autenticación con token válido.],
+  supplement: [Código],
+) <cod:auth-middleware-test>
+
+Los tests del paquete `search` verifican la función `PrefixQuery`, que transforma la entrada del usuario en una expresión compatible con el operador `@@` de PostgreSQL Full Text Search. Los casos incluyen búsquedas con una o varias palabras, eliminación de tildes y caracteres especiales, espacios extra y entrada vacía.
+
+#figure(
+  ```go
+  func TestPrefixQuery(t *testing.T) {
+      tests := []struct{ name, input, want string }{
+          {"single word", "matematicas", "matematicas:*"},
+          {"multiple words", "algebra lineal", "algebra:* & lineal:*"},
+          {"strips accents", "programación", "programacion:*"},
+          {"removes specials", "hello! world?", "hello:* & world:*"},
+          {"empty input", "", ""},
+          {"extra whitespace", "  fisica cuantica  ", "fisica:* & cuantica:*"},
+      }
+      for _, tt := range tests {
+          t.Run(tt.name, func(t *testing.T) {
+              got := PrefixQuery(tt.input)
+              if got != tt.want {
+                  t.Errorf("PrefixQuery(%q) = %q, want %q", tt.input, got, tt.want)
+              }
+          })
+      }
+  }
+  ```,
+  caption: [Tests de la función `PrefixQuery` para Full Text Search.],
+  supplement: [Código],
+) <cod:search-test>
+
+Los tests de los _handlers_ siguen el mismo patrón: instancian un `mockQuerier` con funciones anónimas que devuelven datos controlados, construyen una petición HTTP con `httptest.NewRequest`, inyectan el contexto de autenticación manualmente y verifican tanto el código de estado como el cuerpo de la respuesta.
+
+=== Tests unitarios del frontend
+
+Los tests unitarios del frontend se escribieron con Vitest @vitest-docs y se centran en los dos tipos de lógica que pueden probarse de forma aislada, los componentes de interfaz y las acciones de Svelte.
+
+El componente `HighlightText` resalta la subcadena buscada dentro de un texto envolviéndola en un elemento `<mark>`. Sus tests verifican los tres casos posibles, que resalta correctamente ignorando mayúsculas y tildes, que no introduce ningún `<mark>` cuando no hay coincidencia, y que tampoco lo hace con una búsqueda vacía.
+
+#figure(
+  ```typescript
+  it('highlights the matching substring', async () => {
+      render(HighlightText, { text: 'Álgebra Lineal', query: 'lineal' });
+      const mark = page.getByRole('mark');
+      await expect.element(mark).toHaveTextContent('Lineal');
+  });
+
+  it('renders plain text when there is no match', async () => {
+      const { container } = render(HighlightText, { text: 'Cálculo', query: 'física' });
+      expect(container.querySelectorAll('mark').length).toBe(0);
+  });
+  ```,
+  caption: [Tests unitarios del componente `HighlightText`.],
+  supplement: [Código],
+) <cod:highlight-test>
+
+La acción `clickOutside` detecta clics fuera de un elemento del DOM y emite un evento `outclick`, usado para cerrar menús desplegables. Sus tests verifican que el evento se dispara al hacer clic fuera del nodo, que no se dispara al hacer clic dentro, y que deja de escuchar tras llamar a `destroy`.
+
+#figure(
+  ```typescript
+  it('dispatches outclick when clicking outside the node', () => {
+      const node = document.createElement('div');
+      const outside = document.createElement('div');
+      document.body.appendChild(node);
+      document.body.appendChild(outside);
+
+      let fired = false;
+      node.addEventListener('outclick', () => { fired = true; });
+
+      const action = clickOutside(node);
+      outside.click();
+
+      expect(fired).toBe(true);
+      action.destroy!();
+  });
+  ```,
+  caption: [Test unitario de la acción `clickOutside`.],
+  supplement: [Código],
+) <cod:clickoutside-test>
+
+=== Tests end to end con Playwright
+
+Los tests _end to end_ (E2E) verifican los flujos de la aplicación desde el punto de vista del navegador, ejecutando interacciones reales contra el frontend y el backend levantados localmente. Se escribieron con Playwright @playwright-docs, una herramienta de automatización de navegadores que permite controlar Chrome, Firefox y Safari desde código TypeScript.
+
+El principal reto de los tests E2E en Nemsy es que la autenticación delega en Google OAuth2, cuyo flujo no puede automatizarse en un entorno de pruebas. La solución adoptada es inyectar directamente una cookie `session_token` con un JWT firmado antes de cada test, usando un helper `generateTestJWT` implementado en TypeScript con la API de criptografía de Node.js. De este modo, los tests arrancan ya autenticados sin pasar por el flujo de Google.
+
+#figure(
+  ```typescript
+  test.beforeEach(async ({ context }) => {
+      const jwt = generateTestJWT({
+          sub: 'e2e-test-sub', email: 'e2e@test.edu',
+          hd: 'test.edu',     user_id: 32, role: 'user'
+      });
+      await context.addCookies([{
+          name: 'session_token', value: jwt,
+          domain: 'localhost',   path: '/'
+      }]);
+  });
+  ```,
+  caption: [Inyección de cookie JWT antes de cada test E2E.],
+  supplement: [Código],
+) <cod:e2e-auth>
+
+Los tests están organizados en dos grupos. El grupo `logged out` verifica que la página de inicio muestra el _hero_ y el botón de inicio de sesión cuando no hay sesión activa. El grupo `logged in` cubre los flujos principales, verificando que la página de inicio muestra la barra lateral de asignaturas, que la búsqueda global devuelve resultados al escribir, que el formulario de subida muestra todos sus campos y que el perfil de un usuario es accesible.
+
+#figure(
+  ```typescript
+  test('search returns results', async ({ page }) => {
+      await page.goto('/search');
+      await page.waitForLoadState('networkidle');
+
+      const input = page.getByPlaceholder('Buscar recursos de toda la plataforma...');
+      await input.click();
+      await input.pressSequentially('prueba', { delay: 50 });
+
+      await expect(page.getByText('Recurso de prueba')).toBeVisible({ timeout: 10000 });
+  });
+  ```,
+  caption: [Test E2E del flujo de búsqueda global.],
+  supplement: [Código],
+) <cod:e2e-search>
+
+=== Validación de rendimiento
+
+==== Prueba de carga con k6
+
+Para validar empíricamente el rendimiento de la API bajo condiciones de uso realistas se realizó una prueba de carga con k6 @k6-docs, una herramienta de código abierto orientada a pruebas de rendimiento de APIs HTTP. El escenario simula usuarios virtuales (VUs) navegando por la aplicación, ejecutando en bucle una de tres acciones de forma aleatoria: consultar su perfil y asignaturas, buscar recursos por texto completo o consultar el detalle de un recurso concreto, con pausas de entre 0,5 y 1,5 segundos entre peticiones para simular el tiempo que un usuario real emplea leyendo.
+
+Un VU de k6 no equivale a un usuario real ya que un usuario real hace peticiones de forma esporádica con largos intervalos de inactividad, mientras que un VU las hace de forma continua. Realmente, en la práctica, 100 VUs con pausas de un segundo generan una carga equivalente a varios miles de usuarios activos simultáneamente. La prueba se ejecutó contra la API desplegada en producción en un VPS de Hetzner con 2 vCPU y 4 GB de RAM, aumentando progresivamente la carga desde 10 hasta 100 VUs a lo largo de ocho minutos.
+
+#figure(
+  image("../imagenes/k6.png", width: 100%),
+  caption: [Ejecución de la prueba de carga con k6 en el VPS de producción.],
+) <fig:k6-run>
+
+#figure(
+  {
+    set par(justify: false)
+    set text(size: 10pt)
+    table(
+      columns: (auto, auto, auto, auto),
+      align: (left, right, right, right),
+      table.header([*Endpoint*], [*p50*], [*p90*], [*p95*]),
+      [`GET /api/me`], [1,72 ms], [2,27 ms], [2,89 ms],
+      [`GET /api/me/subjects`], [2,45 ms], [3,48 ms], [4,18 ms],
+      [`GET /api/subjects/{id}/resources`], [1,53 ms], [2,22 ms], [2,72 ms],
+      [`GET /api/resources/search`], [1,75 ms], [2,44 ms], [2,93 ms],
+      [`GET /api/resources/{id}`], [1,96 ms], [2,81 ms], [3,36 ms],
+      [*Global*], [*1,83 ms*], [*2,79 ms*], [*3,45 ms*],
+    )
+  },
+  caption: [Latencias por endpoint en la prueba de carga con k6 (100 VUs, 0 % de errores).],
+) <tab:k6>
+
+El modelo de rendimiento RAIL de Google @google-rail establece que las respuestas del servidor deben llegar en menos de 100 ms para que el usuario perciba la interacción como inmediata. Como se puede observar en la @fig:k6-run y en la @tab:k6, la API de Nemsy obtiene un p95 global de 3,45 ms bajo 100 VUs concurrentes, casi treinta veces por debajo de ese umbral, con una tasa de error del 0 %. Cabe destacar que estas latencias corresponden exclusivamente al servidor, el tiempo que percibe el usuario final incluye además la red, el renderizado del navegador y la ejecución del JavaScript del frontend.
+
+El script de prueba se encuentra en `tests/k6/stress-test.js`. Para ejecutar las rutas protegidas, se incluyó un generador de tokens JWT en `backend/cmd/gen-token/main.go` que firma un token con el mismo secreto que el servidor, evitando la necesidad de pasar por el flujo de Google OAuth2 durante la prueba.
+
+==== Análisis con Lighthouse
+
+Para medir el rendimiento desde la perspectiva del usuario se utilizó Google Lighthouse, ejecutando la auditoría en las mismas condiciones para ambas plataformas mediante Helium @helium-browser, un fork ligero de Chromium sin extensiones instaladas y en modo incógnito, accediendo a la página de inicio tras iniciar sesión. El resultado se recoge en la @fig:lighthouse-comparison.
+
+#figure(
+  grid(
+    columns: 2,
+    column-gutter: 0.5em,
+    image("../imagenes/lighthouse_wuolah.png"), image("../imagenes/lighthouse_nemsy.png"),
+  ),
+  caption: [Comparativa de puntuaciones Lighthouse entre Wuolah (izquierda) y Nemsy (derecha).],
+) <fig:lighthouse-comparison>
+
+Nemsy obtiene una puntuación de rendimiento de 100 sobre 100, frente al 32 de Wuolah. La diferencia responde principalmente a la ausencia de publicidad y scripts de terceros, que en Wuolah son la principal fuente de bloqueo del hilo principal del navegador, a un bundle de JavaScript mínimo gracias a que Svelte compila los componentes a JavaScript puro sin necesidad de ningún framework en tiempo de ejecución, y a una API en Go que, como demuestran los resultados de la sección anterior, responde en menos de 4 ms en el percentil 95 independientemente de la carga concurrente.

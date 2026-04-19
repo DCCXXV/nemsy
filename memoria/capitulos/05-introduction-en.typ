@@ -27,12 +27,12 @@ Wuolah, the best known and most integrated platform for sharing notes, solved a 
 Its main problem is performance. By analysing the platform using Lighthouse, an open source Google tool that audits the performance, accessibility, best practices and SEO of any website (@fig:lighthouse-en), some fairly conclusive results are obtained.
 
 #figure(
-  image("../imagenes/lighthouse_wuolah.png", width: 100%),
+  image("../imagenes/lighthouse_wuolah.png", width: 75%),
   caption: [Performance analysis of wuolah.com with Google Lighthouse.],
   supplement: [Figure],
 ) <fig:lighthouse-en>
 
-The platform achieves a performance score of 22 out of 100, a result that reveals a major optimisation problem and explains the slowness felt when using it. This low score can be explained by the use of a heavy client-side architecture and the large number of advertisements loaded on it. This significantly worsens the user experience and demonstrates the need for a more efficient design approach.
+The platform achieves a performance score of 32 out of 100, a result that reveals a major optimisation problem and explains the slowness felt when using it. This low score can be explained by the use of a heavy client-side architecture and the large number of advertisements loaded on it. This significantly worsens the user experience and demonstrates the need for a more efficient design approach.
 
 Furthermore, its business model based on intensive advertising also harms the experience. While it is understandable that the platform needs to monetise itself, the current implementation excessively penalises the free user with long waiting times to download each resource, unless a monthly subscription is paid.
 

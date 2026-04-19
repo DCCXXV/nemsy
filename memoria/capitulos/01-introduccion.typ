@@ -25,11 +25,11 @@ Wuolah, la plataforma para compartir apuntes mejor integrada y más conocida, so
 Su principal problema es el rendimiento. Al realizar un análisis de la plataforma utilizando Lighthouse, una herramienta de código abierto de Google que audita el rendimiento, la accesibilidad, mejores prácticas y el SEO de cualquier página web (@fig:lighthouse), se observan unos resultados bastante concluyentes.
 
 #figure(
-  image("../imagenes/lighthouse_wuolah.png", width: 100%),
+  image("../imagenes/lighthouse_wuolah.png", width: 75%),
   caption: [Análisis del rendimiento de wuolah.com con Google Lighthouse.],
 ) <fig:lighthouse>
 
-La plataforma obtiene una puntuación de rendimiento de 22 sobre 100, un resultado que muestra un gran problema de optimización y explica la lentitud que se siente al usarla. Esta baja puntuación se puede explicar por el uso de una arquitectura pesada en el lado del cliente y la gran cantidad de anuncios que se cargan en este. Esto empeora significativamente la experiencia del usuario y demuestra la necesidad de un enfoque de diseño más eficiente.
+La plataforma obtiene una puntuación de rendimiento de 32 sobre 100, un resultado que muestra un gran problema de optimización y explica la lentitud que se siente al usarla. Esta baja puntuación se puede explicar por el uso de una arquitectura pesada en el lado del cliente y la gran cantidad de anuncios que se cargan en este. Esto empeora significativamente la experiencia del usuario y demuestra la necesidad de un enfoque de diseño más eficiente.
 
 Además, su modelo de negocio basado en publicidad intensiva también perjudica la experiencia. Si bien es comprensible que la plataforma necesite monetizarse, la implementación actual penaliza en exceso al usuario gratuito con largos tiempos de espera para descargar cada recurso, a menos que se pague una suscripción mensual.
 
