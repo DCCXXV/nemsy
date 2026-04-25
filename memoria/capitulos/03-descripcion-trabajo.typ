@@ -322,16 +322,16 @@ La autenticación se delega completamente a Google OAuth2 por lo que el usuario 
       chronos._par("db", display-name: "PostgreSQL")
 
       chronos._seq("nav", "api", comment: "GET /auth/login")
-      chronos._seq("api", "nav", comment: "302 → accounts.google.com", dashed: true)
+      chronos._seq("api", "nav", comment: [302 $arrow.r$ accounts.google.com], dashed: true)
       chronos._seq("nav", "google", comment: "solicitud de autorización")
       chronos._seq("google", "nav", comment: "pantalla de autenticación", dashed: true)
       chronos._seq("nav", "google", comment: "credenciales del usuario")
       chronos._seq("google", "api", comment: "GET /auth/callback?code=...")
-      chronos._seq("api", "google", comment: "intercambio código → token")
+      chronos._seq("api", "google", comment: [intercambio código $arrow.r$ token])
       chronos._seq("google", "api", comment: "access token + perfil de usuario", dashed: true)
       chronos._seq("api", "db", comment: "upsert usuario")
       chronos._seq("db", "api", comment: "ok", dashed: true)
-      chronos._seq("api", "nav", comment: "Set-Cookie JWT + 302 → /", dashed: true)
+      chronos._seq("api", "nav", comment: [Set-Cookie JWT + 302 $arrow.r$ /], dashed: true)
     }))
   },
   caption: [Diagrama de secuencia del flujo de autenticación con Google OAuth2.],
@@ -341,9 +341,371 @@ Una vez completado el flujo, las rutas protegidas pasan por el middleware `AuthM
 
 Esta separación se refleja directamente en la estructura del router ya que Chi permite anidar grupos de rutas con middlewares independientes, de forma que las rutas públicas de autenticación, las rutas protegidas por JWT y las rutas exclusivas de administración quedan aisladas entre sí.
 
+=== Despliegue
+
+El diagrama de la @fig:arquitectura describe la arquitectura lógica del sistema, pero no cómo se materializa en el servidor. En producción, los tres componentes alojados en el VPS (frontend, backend y base de datos) corren cada uno en su propio contenedor Docker, orquestados por un único fichero `docker-compose.yml`. La @fig:despliegue ilustra esta disposición.
+
+#figure(
+  {
+    diagram(
+      node-stroke: .7pt,
+      node-corner-radius: 4pt,
+      node-inset: 8pt,
+      spacing: (1.4cm, 1cm),
+
+      node((-1, 0), align(center)[*Caddy* \ _reverse proxy + TLS_ \ `:443`], name: <caddy>, fill: rgb("#ede9fe")),
+      node((0, 0), align(center)[*frontend* \ _SvelteKit (Node)_ \ `:3000`], name: <fe>, fill: rgb("#dcfce7")),
+      node((0, 1), align(center)[*backend* \ _Go / Chi_ \ `127.0.0.1:8081`], name: <be>, fill: rgb("#dcfce7")),
+      node((0, 2), align(center)[*db* \ _PostgreSQL 17_ \ `127.0.0.1:5433`], name: <pg>, fill: rgb("#dcfce7")),
+      node((-1, 2), align(center)[volumen \ `pgdata`], name: <vol>, fill: rgb("#f5f5f5")),
+
+      node(
+        (-1, -0.7),
+        box(fill: white, inset: (x: 5pt, y: 1pt), text(
+          size: 10pt,
+          tracking: 0.4pt,
+        )[VPS Hetzner (2 vCPU, 4 GB RAM)]),
+        name: <vpslabel>,
+        stroke: none,
+        fill: none,
+        inset: 0pt,
+      ),
+      node(
+        enclose: (<vpslabel>, <caddy>, <fe>, <be>, <pg>, <vol>),
+        stroke: (dash: "dotted", thickness: .8pt),
+        inset: 14pt,
+        corner-radius: 6pt,
+      ),
+
+      node((1, 1), align(center)[*Hetzner S3* \ _Object Storage_], name: <s3ext>, fill: rgb("#fef9c3"), stroke: (
+        dash: "dashed",
+      )),
+
+      edge(<caddy>, <fe>, "->", [HTTP], label-side: left, label-sep: 4pt),
+      edge(<fe>, <be>, "->", [HTTP interno], label-side: right, label-sep: 4pt),
+      edge(<be>, <pg>, "->", [pgx], label-side: right, label-sep: 4pt),
+      edge(<pg>, <vol>, "-", label-side: left, label-sep: 4pt),
+      edge(<be>, <s3ext>, "->", [minio-go], label-side: left, label-sep: 4pt),
+    )
+    v(0.8em)
+    align(center, grid(
+      columns: 4,
+      column-gutter: 1.2em,
+      row-gutter: 0.4em,
+      box(fill: rgb("#dcfce7"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#ede9fe"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#f5f5f5"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#fef9c3"), stroke: (dash: "dashed", thickness: .7pt), radius: 2pt, width: 0.75em, height: 0.75em),
+
+      text(size: 8pt)[Contenedor en VPS],
+      text(size: 8pt)[Proceso en el host],
+      text(size: 8pt)[Volumen persistente],
+      text(size: 8pt)[Servicio externo],
+    ))
+  },
+  caption: [Arquitectura de despliegue en el VPS con Docker Compose.],
+) <fig:despliegue>
+
+Los tres servicios comparten una red interna gestionada por Docker, de forma que se comunican entre sí mediante el nombre del servicio (`db`, `backend`) sin exponer esos puertos al exterior. Los puertos del backend y la base de datos se publican únicamente en la interfaz de _loopback_ (`127.0.0.1:8081` y `127.0.0.1:5433`), accesibles desde el propio VPS para tareas de administración pero no desde Internet. El tráfico HTTPS público llega al frontend a través de Caddy @caddy-docs, un reverse proxy instalado en el host que termina TLS y reenvía las peticiones al contenedor correspondiente. Caddy se eligió frente a alternativas como Nginx por su gestión automática de certificados TLS mediante Let's Encrypt sin configuración adicional, lo que permite renovar los certificados de forma transparente sin intervención manual.
+
+El estado persistente de PostgreSQL se almacena en un volumen nombrado (`pgdata`), desacoplado del ciclo de vida del contenedor, de forma que se pueden recrear los contenedores sin perder los datos. Los archivos subidos por los usuarios no se guardan en el VPS, sino en Hetzner Object Storage a través de la librería `minio-go`, lo que mantiene la máquina prácticamente sin estado.
+
+Toda la configuración sensible (credenciales de base de datos, secreto JWT, claves OAuth2 y S3) se inyecta a los contenedores mediante variables de entorno definidas en un fichero `.env` presente únicamente en el servidor. De este modo, el mismo `docker-compose.yml` sirve tanto para desarrollo local como para producción, cambiando solo el contenido del `.env`, y el entorno resulta reproducible con un único comando.
+
+#figure(
+  ```yaml
+  services:
+    db:
+      image: postgres:17-alpine
+      restart: unless-stopped
+      environment:
+        POSTGRES_USER: nemsy
+        POSTGRES_PASSWORD: ${DB_PASSWORD}
+        POSTGRES_DB: nemsy
+      volumes:
+        - pgdata:/var/lib/postgresql/data
+      ports:
+        - "127.0.0.1:5433:5432"
+
+    backend:
+      build: ./backend
+      restart: unless-stopped
+      depends_on: [db]
+      environment:
+        DATABASE_URL: postgresql://nemsy:${DB_PASSWORD}@db:5432/nemsy?sslmode=disable
+        JWT_SECRET: ${JWT_SECRET}
+        # ... OAuth2 y credenciales S3
+      ports:
+        - "127.0.0.1:8081:8080"
+
+    frontend:
+      build:
+        context: ./frontend
+        args:
+          PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL}
+      restart: unless-stopped
+      depends_on: [backend]
+      ports:
+        - "3000:3000"
+
+  volumes:
+    pgdata:
+  ```,
+  caption: [Fragmento del `docker-compose.yml` de Nemsy.],
+  supplement: [Código],
+) <cod:docker-compose>
+
+== Diseño de la interfaz de usuario
+
+La interfaz de Nemsy se ha diseñado en paralelo al desarrollo del backend, partiendo de una primera versión funcional pero poco refinada que ha ido madurando hasta el lenguaje visual actual. En esta sección se recoge esa evolución y los tres pilares que sostienen el diseño final, el sistema de componentes, la tipografía y la paleta de color, que en conjunto buscan ofrecer una interfaz sobria pero no fría, alineada con el objetivo de competir en experiencia de usuario con plataformas como Wuolah.
+
+=== Evolución del diseño
+
+El diseño de Nemsy evolucionó de forma iterativa a lo largo del desarrollo. La primera versión, visible en la @fig:nemsy-v1, ya establecía la estructura que se mantiene hoy, con islas blancas sobre fondo de color y retícula de tres columnas, pero el lenguaje visual era más informal, con bordes negros gruesos, esquinas redondeadas y fondo azul pálido. A medida que se añadían nuevas pantallas, el diseño fue derivando hacia una estética más sobria, sustituyendo los bordes gruesos por líneas finas, las esquinas redondeadas por rectas y el azul pálido por un gris neutro. La @fig:nemsy-modos muestra el estado actual en los dos modos de visualización disponibles.
+
+#figure(
+  image("../imagenes/nemsy_v1.png", width: 100%),
+  caption: [Primera versión de la interfaz de Nemsy (enero 2026).],
+) <fig:nemsy-v1>
+
+#figure(
+  grid(
+    columns: 1,
+    row-gutter: 0.5em,
+    image("../imagenes/nemsy_desplegado.png"),
+    image("../imagenes/nemsy_compacto.png"),
+  ),
+  caption: [Interfaz actual de Nemsy en modo desplegado (arriba) y compacto (abajo).],
+) <fig:nemsy-modos>
+
+=== Sistema de diseño
+
+La interfaz organiza el contenido en islas blancas sobre un fondo gris claro, con esquinas rectas y bordes finos, buscando transmitir una sensación más ordenada y sobria que la primera versión. El logotipo, mostrado en la @fig:logo, es el elemento visualmente más llamativo y resume la identidad visual de la plataforma: seis cuadrados de colores dispuestos sobre una retícula de $3 times 3$ que forman una escalera ascendente junto al nombre. Esos seis colores no se quedan en el logotipo, sino que se reutilizan como acentos a lo largo de toda la interfaz, lo que evita que la rigidez de la cuadrícula y los bordes rectos resulten monótonos.
+
+#figure(
+  image("../imagenes/nemsy_logo.svg", width: 4cm),
+  caption: [Logotipo de Nemsy.],
+) <fig:logo>
+
+=== Tipografía
+
+La tipografía es _Google Sans Flex_, una fuente variable cargada desde Google Fonts que cubre todos los pesos y tamaños ópticos en un único fichero, evitando así la carga de múltiples variantes. Se eligió por su buena legibilidad a tamaños pequeños y porque sus formas ligeramente redondeadas contrastan con la rectitud de los componentes sin que la interfaz resulte fría.
+
+=== Paleta de color
+
+La paleta se divide en dos grupos. Por un lado, los colores base, una escala neutra de grises (`zinc` de Tailwind CSS) que estructura el fondo, las islas de contenido, los bordes y la jerarquía tipográfica. Por otro, los seis colores de acento heredados directamente del logotipo, también tomados de la paleta de Tailwind, que se aplican en pequeños detalles como fondos de elementos seleccionados, botones de acción e iconos de tipo de archivo. A diferencia del enfoque habitual de elegir un único color de acento, este reparto multicolor consigue que la interfaz, pese a su rigidez geométrica y su sobriedad, mantenga el suficiente contraste cromático como para no resultar aburrida de mirar ni de usar. La @fig:nemsy-busqueda ilustra esta paleta en la página de búsqueda global.
+
+#figure(
+  {
+    let cell(color, label) = {
+      let lum = color.components().at(0)
+      let fg = if lum > 55% { rgb("#374151") } else { rgb("#f9fafb") }
+      box(
+        fill: color,
+        stroke: 0.5pt + rgb("#cccccc"),
+        width: 100%,
+        height: 3.6em,
+        inset: 5pt,
+        align(bottom + center, text(size: 7.5pt, fill: fg, font: "Courier New")[#label]),
+      )
+    }
+
+    stack(
+      spacing: 2em,
+      {
+        text(size: 12pt, fill: rgb("#3f3f46"))[Acento]
+        grid(
+          columns: 6,
+          column-gutter: 3pt,
+          cell(rgb("#93c5fd"), "blue-300"),
+          cell(rgb("#d9f99d"), "lime-200"),
+          cell(rgb("#fca5a5"), "red-300"),
+          cell(rgb("#fde68a"), "amber-200"),
+          cell(rgb("#c4b5fd"), "violet-300"),
+          cell(rgb("#fdba74"), "orange-300"),
+        )
+      },
+      {
+        text(size: 12pt, fill: rgb("#3f3f46"))[Base]
+        grid(
+          columns: 7,
+          column-gutter: 3pt,
+          cell(rgb("#ffffff"), "white"),
+          cell(rgb("#fafafa"), "zinc-50"),
+          cell(rgb("#f4f4f5"), "zinc-100"),
+          cell(rgb("#e4e4e7"), "zinc-200"),
+          cell(rgb("#d4d4d8"), "zinc-300"),
+          cell(rgb("#71717a"), "zinc-500"),
+          cell(rgb("#3f3f46"), "zinc-700"),
+        )
+      },
+    )
+  },
+  caption: [Paleta de color de Nemsy basada en colores por defecto de Tailwind CSS.],
+) <fig:paleta>
+
+#figure(
+  image("../imagenes/nemsy_busqueda.png", width: 100%),
+  caption: [Página de búsqueda global de Nemsy.],
+) <fig:nemsy-busqueda>
+
 == Diseño de la base de datos
 
-Explicación del esquema de base de datos...
+El esquema de Nemsy se apoya en nueve tablas relacionales que modelan las entidades principales de la plataforma y las relaciones entre ellas. El diseño sigue la tercera forma normal en lo que respecta a la información de dominio, pero introduce de forma deliberada dos columnas desnormalizadas (`download_count` y `search_vector`) para evitar cálculos repetidos en cada consulta. La @fig:er recoge el modelo entidad-relación resultante.
+
+#figure(
+  {
+    diagram(
+      node-stroke: .7pt,
+      node-corner-radius: 4pt,
+      node-inset: 6pt,
+      spacing: (2cm, 2cm),
+      node((0, 0), align(center)[*universities*], name: <uni>, fill: rgb("#fef9c3")),
+      node((-1, 1), align(center)[*studies*], name: <stu>, fill: rgb("#fef9c3")),
+      node((0, 1), align(center)[*users*], name: <usr>, fill: rgb("#dbeafe")),
+      node((-1, 2), align(center)[*subjects*], name: <sub>, fill: rgb("#fef9c3")),
+      node((0, 2), align(center)[*resources*], name: <res>, fill: rgb("#dcfce7")),
+      node((1, 2), align(center)[*reports*], name: <rep>, fill: rgb("#fee2e2")),
+      node((-1, 3), align(center)[*pinned\_subjects*], name: <pin>, fill: rgb("#f5f5f5")),
+      node((0, 3), align(center)[*resource\_files*], name: <rf>, fill: rgb("#dcfce7")),
+
+      edge(<uni>, <stu>, "-|>", [1..N], label-side: left, label-sep: 3pt),
+      edge(<uni>, <usr>, "-|>", [1..N], label-side: right, label-sep: 3pt),
+      edge(<stu>, <sub>, "-|>", [1..N], label-side: left, label-sep: 3pt),
+      edge(<stu>, <usr>, "-|>", [1..N], label-side: right, label-sep: 3pt),
+      edge(<usr>, <res>, "-|>", [1..N], label-side: right, label-sep: 3pt),
+      edge(<sub>, <res>, "-|>", [1..N], label-side: left, label-sep: 3pt),
+      edge(<res>, <rf>, "-|>", [1..N], label-side: right, label-sep: 3pt),
+      edge(<usr>, <pin>, "-|>", [1..N], label-pos: 0.7, label-side: right, label-sep: 3pt),
+      edge(<sub>, <pin>, "-|>", [1..N], label-side: left, label-sep: 3pt),
+      edge(<res>, <rep>, "-|>", [1..N], label-side: right, label-sep: 3pt),
+      edge(<usr>, <rep>, "-|>", [1..N], label-side: left, label-sep: 3pt),
+    )
+    v(0.8em)
+    align(center, grid(
+      columns: 5,
+      column-gutter: 1.2em,
+      row-gutter: 0.4em,
+      box(fill: rgb("#fef9c3"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#dbeafe"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#dcfce7"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#fee2e2"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+      box(fill: rgb("#f5f5f5"), stroke: .7pt, radius: 2pt, width: 0.75em, height: 0.75em),
+
+      text(size: 8pt)[Jerarquía académica],
+      text(size: 8pt)[Usuarios],
+      text(size: 8pt)[Contenido],
+      text(size: 8pt)[Moderación],
+      text(size: 8pt)[Tabla de unión],
+    ))
+  },
+  caption: [Diagrama entidad-relación del esquema de Nemsy.],
+) <fig:er>
+
+=== Entidades principales
+
+El esquema se articula en torno al eje educativo `universities` $arrow.r$ `studies` $arrow.r$ `subjects`, que modela la jerarquía académica, y al eje de contenido `users` $arrow.r$ `resources` $arrow.r$ `resource_files`, que modela la autoría y el almacenamiento. La tabla `pinned_subjects` materializa la relación N:M entre usuarios y asignaturas fijadas, y `reports` recoge las denuncias sobre recursos. La @tab:entidades resume el papel de cada tabla.
+
+#figure(
+  {
+    set par(justify: false)
+    set text(size: 10pt)
+    table(
+      columns: (auto, 1fr),
+      align: left,
+      table.header([*Tabla*], [*Responsabilidad*]),
+      [`universities`],
+      [Catálogo de universidades con su dominio de correo (`ucm.es`, `upm.es`, …), usado para asociar automáticamente al usuario al iniciar sesión con Google.],
+
+      [`studies`],
+      [Grados o titulaciones ofertados por una universidad. Cada estudio pertenece a una universidad mediante `university_id`.],
+
+      [`subjects`], [Asignaturas que componen un estudio, junto con el curso (`year`) al que pertenecen.],
+      [`users`],
+      [Usuarios autenticados vía Google. Se almacena `google_sub` como identificador estable, el `email`, el `hd` (_hosted domain_) del que se deduce la universidad, un `username` único generado a partir del correo y un campo `role` para distinguir administradores.],
+
+      [`resources`],
+      [Publicaciones subidas por los usuarios. Cada recurso agrupa uno o varios archivos bajo un mismo `title` y `description`, y mantiene un contador `download_count` y un `search_vector` para la búsqueda de texto completo.],
+
+      [`resource_files`],
+      [Archivos individuales que componen un recurso, con su `s3_key` (clave en Object Storage), nombre original y tamaño.],
+
+      [`pinned_subjects`],
+      [Relación N:M entre `users` y `subjects` que representa las asignaturas fijadas por cada usuario en su página de inicio. Su clave primaria compuesta `(user_id, subject_id)` evita duplicados sin un índice adicional.],
+
+      [`reports`],
+      [Denuncias sobre recursos. La restricción `UNIQUE(resource_id, reporter_id)` impide que un mismo usuario denuncie dos veces el mismo recurso.],
+    )
+  },
+  caption: [Tablas del esquema y su responsabilidad.],
+) <tab:entidades>
+
+Todas las claves foráneas se declaran con `ON DELETE CASCADE`, de forma que al eliminar un usuario se borran en cascada sus recursos, archivos, denuncias y asignaturas fijadas, sin dejar filas huérfanas ni necesidad de lógica de limpieza en el backend.
+
+=== Evolución mediante migraciones
+
+El esquema no se definió en un único fichero monolítico, sino que se construyó de forma incremental a medida que crecieron los requisitos de la plataforma. Para gestionar esta evolución se utilizó `golang-migrate` @golang-migrate, una herramienta que aplica migraciones SQL numeradas y mantiene una tabla `schema_migrations` interna para saber qué versión está activa. Cada migración consta de dos ficheros, `NNN_nombre.up.sql` para aplicar el cambio y `NNN_nombre.down.sql` para revertirlo, lo que permite volver a una versión anterior sin intervención manual sobre la base de datos.
+
+La @tab:migraciones recoge el historial completo de migraciones del proyecto, que refleja la evolución natural del esquema desde la versión inicial hasta el estado actual.
+
+#figure(
+  {
+    set par(justify: false)
+    set text(size: 10pt)
+    table(
+      columns: (auto, 1fr),
+      align: left,
+      table.header([*Migración*], [*Cambio introducido*]),
+      [`000001_init`], [Esquema inicial con `studies`, `users`, `subjects` y `resources`.],
+      [`000002_multi_files`],
+      [Extrae los archivos de `resources` a la tabla `resource_files` para permitir varios ficheros por recurso.],
+
+      [`000003_pinned_subjects`], [Tabla `pinned_subjects` para asignaturas fijadas por cada usuario.],
+      [`000004_username`], [Sustituye `full_name` y `pfp` por un `username` único generado del correo.],
+      [`000005_download_count`], [Añade `download_count` a `resources` para evitar `COUNT(*)` en cada consulta.],
+      [`000006_search_vector`], [Añade la columna generada `search_vector` e índice GIN para Full Text Search.],
+      [`000007_universities`], [Introduce la tabla `universities` y enlaza `studies` y `users` con ella.],
+      [`000008_unaccent_search`], [Integra la extensión `unaccent` en los `search_vector` para ignorar tildes.],
+      [`000009_user_role`], [Añade el campo `role` a `users` y la tabla `reports`.],
+    )
+  },
+  caption: [Historial de migraciones del esquema.],
+) <tab:migraciones>
+
+=== Búsqueda de texto completo
+
+Una de las decisiones de diseño más relevantes es el uso de las capacidades nativas de Full Text Search de PostgreSQL para implementar la búsqueda global de recursos, sin recurrir a servicios externos como Elasticsearch. La búsqueda se apoya en tres piezas que se combinan en el propio esquema: columnas generadas de tipo `tsvector`, la extensión `unaccent` envuelta en una función `IMMUTABLE`, e índices GIN.
+
+La columna `search_vector` de `resources` es una columna generada y almacenada (`GENERATED ALWAYS ... STORED`) que PostgreSQL recalcula automáticamente en cada `INSERT` o `UPDATE`, eliminando la necesidad de triggers o lógica adicional en el backend. Su contenido combina el título y la descripción del recurso con pesos distintos (`'A'` y `'B'`), de forma que una coincidencia en el título pesa más que una en la descripción al calcular el ranking con `ts_rank`.
+
+Un problema importante que surge al tratar con texto en español son las tíldes, que pese a ser frecuentes en el idioma, los usuarios no siempre tienden a escribirlas al buscar pero si esperan que la búsqueda lo encuentre. La extensión `unaccent` de PostgreSQL elimina los diacríticos, pero no puede usarse directamente dentro de una columna generada porque no está marcada como `IMMUTABLE`. La solución, introducida en la migración `000008`, consiste en envolverla en una función SQL propia (`immutable_unaccent`) que sí lo está, tal y como muestra el fragmento de la @cod:search-vector.
+
+#figure(
+  ```sql
+  CREATE OR REPLACE FUNCTION immutable_unaccent(text)
+  RETURNS text AS $$
+      SELECT public.unaccent('public.unaccent', $1)
+  $$ LANGUAGE sql IMMUTABLE PARALLEL SAFE;
+
+  ALTER TABLE resources ADD COLUMN search_vector tsvector
+      GENERATED ALWAYS AS (
+          setweight(to_tsvector('spanish',
+              immutable_unaccent(coalesce(title, ''))), 'A') ||
+          setweight(to_tsvector('spanish',
+              immutable_unaccent(coalesce(description, ''))), 'B')
+      ) STORED;
+
+  CREATE INDEX idx_resources_search ON resources USING GIN (search_vector);
+  ```,
+  caption: [Definición del `search_vector` con pesos y `unaccent`.],
+  supplement: [Código],
+) <cod:search-vector>
+
+Sobre esta columna se construye un índice GIN (_Generalized Inverted Index_), la estructura recomendada por PostgreSQL para datos `tsvector` @postgresql-gin. Un índice GIN indexa cada _lexema_ de forma independiente, de manera que una consulta con el operador `@@` localiza los recursos coincidentes sin necesidad de escanear toda la tabla. La misma técnica se aplica a la tabla `universities`, aunque en su caso se usa la configuración `'simple'` en lugar de `'spanish'`, ya que los nombres propios no deben reducirse a su raíz como sí conviene hacer con el texto en prosa.
+
+=== Índices adicionales
+
+Además del índice GIN para la búsqueda, el esquema define varios índices B-tree sobre las claves foráneas más consultadas. El índice compuesto `idx_resources_subject_created (subject_id, created_at DESC)` es especialmente relevante ya que sirve para la consulta que lista los recursos de una asignatura ordenados por fecha, permitiendo que PostgreSQL resuelva la operación directamente desde el índice sin ordenación posterior. Los índices por `owner_id` y por `resource_id` en `resource_files` garantizan que las eliminaciones en cascada y las consultas de perfil se ejecuten en tiempo logarítmico, sin necesidad de recorrer la tabla completa.
 
 == Implementación del backend
 
