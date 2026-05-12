@@ -1,20 +1,40 @@
+#import "../template.typ": epigraph
+
 = Conclusiones y Trabajo Futuro
 
 #block(
   fill: rgb("#f0f0f0"),
   inset: 1em,
+  below: 1.5em,
 )[
   *Resumen:* Este capítulo presenta las conclusiones extraídas del proyecto y las líneas de trabajo futuro.
 ]
 
+#epigraph(
+  [La perfección no se alcanza cuando ya no hay nada más que añadir, sino cuando ya no queda nada por quitar.],
+  [Antoine de Saint-Exupéry],
+)
+
 == Conclusiones
 
-Conclusiones del proyecto...
+El resultado del proyecto es una plataforma funcional, desplegada en producción en #link("https://nemsy.org")[nemsy.org] y demostrablemente solvente que cubre el caso de uso planteado, este siendo el de compartir y consultar apuntes universitarios entre estudiantes, sin las concesiones publicitarias y de _paywall_ que limitan a las alternativas analizadas en el capítulo de Estado de la Cuestión. La implementación combina un _backend_ en Go con sqlc y PostgreSQL y un _frontend_ en SvelteKit con Svelte 5, dos elecciones que han demostrado ser acertadas tanto en términos de productividad durante el desarrollo como en rendimiento medido en la fase de validación.
+
+Los datos recogidos en la prueba de carga con k6 y en el análisis con Lighthouse, descritos en @sec:k6, muestran que el sistema se comporta de forma estable bajo concurrencia sostenida y obtiene puntuaciones notablemente superiores a Wuolah en las cuatro dimensiones que mide Lighthouse. Esto valida empíricamente uno de los objetivos centrales del proyecto, ofrecer una experiencia rápida como factor diferencial frente a las alternativas existentes. Más allá de las cifras, la arquitectura resultante es deliberadamente simple, está bien delimitada por capas y se apoya en estándares ampliamente adoptados (HTTP, JWT, S3, OAuth2), lo que facilita tanto el mantenimiento como la incorporación de nuevas funcionalidades sin reescrituras estructurales.
+
+Conviene destacar que lo que se ha construido es un prototipo en el sentido estricto del término, un sistema completo y operativo que cubre el camino feliz y los principales caminos alternativos, pero que no pretende competir todavía en variedad de funcionalidades con plataformas que llevan años en el mercado. Dicho esto, la base sobre la que se asienta es lo bastante sólida para escalar, ya que el _backend_ es _stateless_ y se puede replicar horizontalmente detrás de un balanceador, el almacenamiento de objetos está abstraído tras una fachada y puede cambiarse de proveedor sin tocar lógica de dominio, la base de datos PostgreSQL admite particionado y _read replicas_ cuando llegue el momento, y el _frontend_ se sirve como contenido estático con SSR puntual. En otras palabras, las decisiones tomadas no comprometen en absoluto el crecimiento futuro y permiten incorporar tanto más usuarios como más funcionalidades con el coste mínimo posible.
 
 == Objetivos alcanzados
 
-Evaluación de los objetivos propuestos...
+Los siete objetivos enumerados en el capítulo de Introducción se han cumplido en su totalidad. La API REST en Go está implementada y desplegada en producción, exponiendo los _endpoints_ recogidos en la @tab:endpoints-frontend y validados tanto por _tests_ unitarios como por la prueba de carga descrita en @sec:k6. La interfaz web en SvelteKit cubre la totalidad del flujo de usuario, desde el _onboarding_ hasta la subida y consulta de recursos, con dos disposiciones de navegación adaptadas a escritorio y móvil. La autenticación con Google OAuth2 funciona como mecanismo único de acceso, con detección automática del centro educativo a partir del dominio del correo cuando este está registrado en la tabla de universidades. El catálogo de centros y asignaturas se ha poblado de forma totalmente automatizada, combinando los datos de JetBrains SWOT para las universidades y un _scraper_ específico de la UCM para los grados y asignaturas, y se carga durante el despliegue inicial mediante los binarios `cmd/seed-universities` y `cmd/seed-studies` introducidos en @sec:bootstrap. El almacenamiento de archivos se delega en un _bucket_ de Hetzner Object Storage al que se accede mediante la librería `minio-go`, lo que permite migrar a cualquier otro proveedor compatible con S3 sin cambios de código. La búsqueda global se resuelve con _Full Text Search_ nativo de PostgreSQL, con pesos por campo y soporte de tildes mediante la extensión `unaccent`. Por último, la plataforma se ha desplegado de forma portable mediante Docker Compose en un VPS, con un único `docker compose up` capaz de levantar todo el _stack_ en cualquier máquina con Docker.
 
 == Trabajo futuro
 
-Posibles mejoras y extensiones...
+A partir del prototipo entregado se han existen varias líneas de evolución, todas ellas viables sin reescritura estructural gracias a la arquitectura descrita en el capítulo de Descripción del Trabajo.
+
+La extensión más inmediata es la incorporación de nuevos visores de archivos en el _frontend_. La arquitectura actual delega la previsualización en componentes Svelte especializados por tipo (`PdfViewer`, `ImageViewer`, `MarkdownViewer`), seleccionados a partir de la extensión del fichero. Añadir soporte para código fuente con resaltado de sintaxis, audio mediante `<audio>`, vídeo mediante `<video>` o documentos ofimáticos mediante una conversión previa a PDF se reduce a crear un componente nuevo y registrarlo en la tabla de despacho del visor genérico, sin tocar el _backend_.
+
+Una segunda línea, más ambiciosa, es ampliar el concepto de recurso para que no se limite a un conjunto de archivos. Cabe imaginar al menos tres variantes nuevas. La primera son los _enlaces_, recursos que apuntan a un URL externo, útiles para compartir vídeos de YouTube, foros o documentación oficial sin necesidad de descargar nada. La segunda son los _recursos de texto_, con un editor enriquecido usando `markdown` que permita redactar resúmenes y apuntes directamente en la plataforma, sin pasar por un fichero subido. La tercera, la más interesante didácticamente, son los _cuestionarios_ al estilo de los _tests_ de Moodle, con preguntas, respuestas correctas y un modo de _autoevaluación_ que se podría enriquecer con métricas agregadas. La estructura actual de la tabla `resources` admite esta extensión añadiendo una columna `kind` discriminadora y tablas auxiliares por tipo, sin alterar el resto del modelo.
+
+Otra evolución natural, en la línea de las plataformas analizadas en el capítulo de Estado de la Cuestión, es la integración de funcionalidades de inteligencia artificial. Algunas son inmediatamente útiles, como la generación automática de un resumen del recurso a partir del texto extraído del PDF, la sugerencia de etiquetas o de la asignatura más probable durante la subida, o la detección automática de contenido inapropiado para complementar el sistema de reportes manuales. Otras requieren más diseño, como un _chatbot_ que responda preguntas sobre los apuntes del usuario o la generación de cuestionarios a partir de un recurso existente, similares a los que ya ofrecen Studocu y Docsity. La arquitectura permite incorporarlas como un servicio adicional consumido por el _backend_, sin acoplarlas al núcleo del dominio.
+
+Por último, hay líneas de trabajo más operativas que no introducen funcionalidades nuevas pero amplían el alcance del prototipo. La más evidente es completar el catálogo más allá de la UCM, escribiendo _scrapers_ para otras universidades españolas y aprovechando que la tabla `universities` ya contiene los centros del mundo entero gracias a JetBrains SWOT. Otras posibilidades son la implementación de un sistema de comentarios y valoraciones por recurso, la introducción de notificaciones en tiempo real mediante WebSockets cuando se reporta o se descarga un recurso del usuario, una aplicación móvil nativa que reutilice la API existente y la migración del despliegue actual de un único VPS a una infraestructura con balanceador y réplicas cuando el volumen de tráfico lo justifique. Todas estas extensiones encajan limpiamente con las decisiones de diseño tomadas, lo que confirma que el prototipo no solo cumple los objetivos planteados, sino que constituye una base sobre la que seguir construyendo.

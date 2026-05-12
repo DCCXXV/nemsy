@@ -1,3 +1,5 @@
+#import "../template.typ": epigraph
+
 = Introduction
 
 #counter(figure).update(0)
@@ -10,11 +12,7 @@
   *Abstract:* This chapter presents the motivation behind the project, the objectives pursued and the structure of the document.
 ]
 
-#pad(left: 3em)[
-  #quote(attribution: [Grady Booch], block: true)[
-    The quality of a system is not determined by the power of its individual components, but by how they are chosen and assembled to meet the needs.
-  ]
-]
+#epigraph([Talk is cheap. Show me the code.], [Linus Torvalds])
 
 == Motivation
 
@@ -24,7 +22,7 @@ Before Wuolah, the alternatives were limited to generic platforms such as Docsit
 
 Wuolah, the best known and most integrated platform for sharing notes, solved a real problem by recognising the need for students to have a place to share and find relevant notes for their specific subjects, in their degree programme and educational institution. Despite its popularity, its current model presents a series of problems that harm both the user experience and the quality of information exchange.
 
-Its main problem is performance. By analysing the platform using Lighthouse, an open source Google tool that audits the performance, accessibility, best practices and SEO of any website (@fig:lighthouse-en), some fairly conclusive results are obtained.
+Its main problem is performance. By analysing the platform using Lighthouse, an open source Google tool that audits the performance, accessibility, best practices and SEO of any website (@fig:lighthouse-en), some fairly conclusive results are obtained regarding its performance.
 
 #figure(
   image("../imagenes/lighthouse_wuolah.png", width: 75%),
@@ -58,9 +56,9 @@ The main objective of this project is to create and deploy a prototype of an app
 + Develop a web interface with SvelteKit that offers a fast, advertisement free experience.
 + Integrate authentication with Google OAuth2 as the sole access method, automatically detecting the user's educational institution from their email domain.
 + Automatically retrieve educational institutions and their subjects through web scraping and JetBrains SWOT.
-+ Use S3-compatible object storage to manage files uploaded by users.
++ Use S3 compatible object storage to manage files uploaded by users.
 + Implement global search using PostgreSQL Full Text Search.
-+ Deploy the platform in a portable manner using Docker Compose on a VPS.
++ Deploy the platform in a portable manner using Docker Compose on a VPS, making it publicly accessible at #link("https://nemsy.org")[nemsy.org].
 
 == Work Plan
 

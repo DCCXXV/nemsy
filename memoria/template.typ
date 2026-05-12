@@ -1,6 +1,18 @@
 // Plantilla UCM FDI para TFG
 // Basada en la plantilla TeXiS
 
+#let appendix-mode = state("appendix-mode", false)
+
+#let epigraph(quote, attribution) = align(
+  right,
+  block(width: 65%, {
+    set par(justify: true)
+    text(style: "italic", quote)
+    linebreak()
+    [— ] + attribution
+  }),
+)
+
 #let ucm-tfg(
   titulo: "",
   titulo-en: "",
@@ -17,6 +29,7 @@
   palabras-clave: (),
   abstract-en: [],
   keywords-en: (),
+  agradecimientos: none,
   body,
 ) = {
   // configuración del documento
@@ -70,7 +83,13 @@
     block(
       text(size: 22pt, weight: "bold")[
         #if it.numbering != none [
-          Capítulo #counter(heading).display()
+          #context {
+            if appendix-mode.get() [
+              #counter(heading).display()
+            ] else [
+              #if text.lang == "en" [Chapter] else [Capítulo] #counter(heading).display()
+            ]
+          }
         ]
         #it.body
       ],
@@ -261,6 +280,15 @@
     ]
   ]
 
+  // AGRADECIMIENTOS
+  if agradecimientos != none {
+    page(numbering: none)[
+      #heading(level: 1, numbering: none, outlined: false)[Agradecimientos]
+      #v(1cm)
+      #agradecimientos
+    ]
+  }
+
   // ÍNDICE
   page(numbering: none)[
     #heading(level: 1, numbering: none, outlined: false)[Índice general]
@@ -270,6 +298,20 @@
       indent: 2em,
       depth: 3,
     )
+  ]
+
+  // ÍNDICE DE FIGURAS
+  page(numbering: none)[
+    #heading(level: 1, numbering: none, outlined: false)[Índice de figuras]
+    #v(1cm)
+    #outline(title: none, target: figure.where(kind: image))
+  ]
+
+  // ÍNDICE DE TABLAS
+  page(numbering: none)[
+    #heading(level: 1, numbering: none, outlined: false)[Índice de tablas]
+    #v(1cm)
+    #outline(title: none, target: figure.where(kind: table))
   ]
 
 
@@ -286,7 +328,11 @@
         align(center)[
           #text(size: 10pt, style: "italic")[
             #if current.numbering != none [
-              Capítulo #counter(heading).at(current.location()).first():
+              #if appendix-mode.at(current.location()) [
+                Apéndice #numbering("A", counter(heading).at(current.location()).first()):
+              ] else [
+                #if text.lang == "en" [Chapter] else [Capítulo] #counter(heading).at(current.location()).first():
+              ]
             ]
             #current.body
           ]

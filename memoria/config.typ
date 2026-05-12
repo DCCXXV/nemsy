@@ -23,7 +23,7 @@
 
   Este Trabajo de Fin de Grado describe el diseño e implementación de una aplicación web alternativa que permite a estudiantes compartir, buscar y descargar apuntes sin interferencias, con un énfasis en la rapidez y la ligereza desde el inicio. La plataforma está diseñada para integrarse con las asignaturas, estudios y centros educativos tanto de España como del extranjero. Debido a las limitaciones de tiempo y al carácter tedioso del proceso más que dificultad técnica, la integración completa solo se ha realizado sobre la UCM, aunque la arquitectura está preparada para su expansión a otros centros: únicamente sería necesario desarrollar un _web crawler_ adaptado a la página de cada uno.
 
-  Para ello se ha utilizado una combinación de _web scraping_ y el desarrollo de un _script_ que utiliza Jetbrains SWOT, una lista de dominios de correo académicos, para conseguir todos los centros educativos y sus dominios. Los usuarios que completan el proceso de _onboarding_ podrán ver todas las asignaturas de su grado separadas por año y ver los apuntes que otros usuarios han compartido. Además podrán buscar globalmente entre todos los apuntes de la plataforma gracias a la utilización de _Full Text Search_ permitiendo que la búsqueda sea instantánea aun con millones de apuntes.
+  Para obtener toda la información necesaria se ha utilizado una combinación de _web scraping_ y el desarrollo de un _script_ que utiliza Jetbrains SWOT, una lista de dominios de correo académicos, para conseguir todos los centros educativos y sus dominios. Los usuarios que completan el proceso de _onboarding_ podrán ver todas las asignaturas de su grado separadas por año y ver los apuntes que otros usuarios han compartido. Además, podrán buscar globalmente entre todos los apuntes de la plataforma gracias a la utilización de _Full Text Search_ que permite una búsqueda instantánea aun con millones de apuntes.
 
   La plataforma está construida siguiendo una arquitectura cliente-servidor: un backend desarrollado en Go, elegido por su rendimiento y la solidez de su ecosistema para la construcción de APIs, un frontend en SvelteKit que proporciona una interfaz limpia y responsiva y PostgreSQL como base de datos lo que facilita ciertas funcionalidades.
 ]
@@ -60,3 +60,12 @@
   "OAuth2",
   "Docker",
 )
+
+// agradecimientos
+#let agradecimientos = [
+  A mi director, Ramón González del Campo Rodríguez Barbero, por su orientación y por haber confiado en este proyecto desde el inicio.
+
+  A mi familia, por el apoyo incondicional durante estos años de carrera.
+
+  A mis compañeros del Grado en Ingeniería de Software de la UCM, con quienes he compartido apuntes, exámenes y tantos quebraderos de cabeza, y sin cuya colaboración habría sido prácticamente imposible llegar hasta aquí. Este trabajo es, en cierto modo, un intento de devolver algo de lo mucho que me han aportado.
+]

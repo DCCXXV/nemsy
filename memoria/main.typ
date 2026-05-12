@@ -17,6 +17,7 @@
   palabras-clave: palabras-clave,
   abstract-en: abstract-en,
   keywords-en: keywords-en,
+  agradecimientos: agradecimientos,
 )
 
 // CAPÍTULOS
@@ -31,12 +32,18 @@
 #include "capitulos/02-estado-cuestion.typ"
 #include "capitulos/03-descripcion-trabajo.typ"
 #include "capitulos/04-conclusiones.typ"
+#set text(lang: "en")
+#counter(heading).update(3)
+#include "capitulos/06-conclusions-en.typ"
+#set text(lang: "es")
+#counter(heading).update(4)
 
 #pagebreak()
 #bibliography("referencias.bib", title: "Bibliografía", style: "ieee")
 
 // APENDICES
 #pagebreak()
+#appendix-mode.update(true)
 #set heading(numbering: (..nums) => {
   if nums.pos().len() == 1 {
     "Apéndice " + numbering("A", ..nums)
@@ -47,7 +54,7 @@
 #counter(heading).update(0)
 
 // Apéndice A
-// #include "apendices/a-manual-usuario.typ"
+#include "apendices/a-despliegue.typ"
 
 // Apéndice B
-// #include "apendices/b-instalacion.typ"
+#include "apendices/b-glosario.typ"

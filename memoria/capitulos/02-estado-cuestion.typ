@@ -1,15 +1,23 @@
+#import "../template.typ": epigraph
+
 = Estado de la Cuestión
 
 #block(
   fill: rgb("#f0f0f0"),
   inset: 1em,
+  below: 1.5em,
 )[
   *Resumen:* Este capítulo analiza el estado del arte de las plataformas colaborativas para compartir recursos académicos.
 ]
 
+#epigraph(
+  [Adapta lo que sea útil, rechaza lo que sea inútil y añade lo que sea específicamente tuyo.],
+  [Bruce Lee],
+)
+
 == Plataformas existentes
 
-A continuación se analizan las tres plataformas más relevantes para compartir recursos académicos, evaluando su integración con centros educativos, su modelo de monetización y la experiencia de usuario que ofrecen.
+A continuación, se analizan las tres plataformas más relevantes para compartir recursos académicos, evaluando su integración con centros educativos, su modelo de monetización y la experiencia de usuario que ofrecen.
 
 === Wuolah
 
@@ -33,9 +41,7 @@ En conclusión, Wuolah es la plataforma que mejor ha resuelto el flujo de usuari
 
 === Studocu
 
-Studocu es una plataforma fundada en 2013 en los Países Bajos que ha crecido hasta convertirse en la mayor plataforma de apuntes a nivel global. También ofrece integración con centros educativos, aunque algo más superficial que la de Wuolah, permite seleccionar universidad y asignaturas, pero no grado, por lo que asignaturas de mismo nombre compartidas entre grados se agrupan aunque puedan tener un temario diferente.
-
-Dejando ese detalle de lado, como se puede ver en la @fig:studocu, la interfaz de escritorio es excelente, aprovecha bien el ancho de la pantalla y tiene una buena densidad de información. Sin embargo, al no ser tan popular en España, muchas asignaturas de grados como Ingeniería de Software no aparecen, y las que sí lo hacen tienen varias veces menos contenido que en Wuolah.
+Studocu es una plataforma fundada en 2013 en los Países Bajos que ha crecido hasta convertirse en la mayor plataforma de apuntes a nivel global. También ofrece integración con centros educativos, aunque algo más superficial que la de Wuolah, permite seleccionar universidad y asignaturas, pero no grado, por lo que asignaturas de mismo nombre compartidas entre grados se agrupan aunque puedan tener un temario diferente. Dejando ese detalle de lado, como se puede ver en la @fig:studocu, la interfaz de escritorio es excelente, aprovecha bien el ancho de la pantalla y tiene una buena densidad de información. Sin embargo, al no ser tan popular en España, muchas asignaturas de grados como Ingeniería de Software no aparecen, y las que sí lo hacen tienen varias veces menos contenido que en Wuolah.
 
 #figure(
   image("../imagenes/screenshot_studocu.png", width: 100%),

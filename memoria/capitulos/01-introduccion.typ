@@ -1,3 +1,5 @@
+#import "../template.typ": epigraph
+
 = Introducción
 
 #block(
@@ -8,11 +10,7 @@
   *Resumen:* En este capítulo se presenta la motivación del proyecto, los objetivos que se persiguen y la estructura del documento.
 ]
 
-#pad(left: 3em)[
-  #quote(attribution: [Grady Booch], block: true)[
-    La calidad de un sistema no está determinada por el poder de sus componentes individuales, sino por cómo se eligen y se ensamblan para satisfacer las necesidades.
-  ]
-]
+#epigraph([Talk is cheap. Show me the code.], [Linus Torvalds])
 
 == Motivación
 
@@ -22,7 +20,7 @@ Antes de Wuolah, las alternativas se limitaban a plataformas genéricas como Doc
 
 Wuolah, la plataforma para compartir apuntes mejor integrada y más conocida, solucionó un problema real al ver la necesidad de los estudiantes de tener un lugar donde compartir y encontrar apuntes relevantes para sus asignaturas concretas, de su grado o estudio, en su centro educativo. A pesar de su popularidad el modelo actual que sigue presenta una serie de problemas que perjudican tanto la experiencia de usuario como la calidad del intercambio de información.
 
-Su principal problema es el rendimiento. Al realizar un análisis de la plataforma utilizando Lighthouse, una herramienta de código abierto de Google que audita el rendimiento, la accesibilidad, mejores prácticas y el SEO de cualquier página web (@fig:lighthouse), se observan unos resultados bastante concluyentes.
+Su principal problema es el rendimiento. Al realizar un análisis de la plataforma utilizando Lighthouse, una herramienta de código abierto de Google que audita el rendimiento, la accesibilidad, mejores prácticas y el SEO de cualquier página web (@fig:lighthouse), se observan unos resultados bastante concluyentes en cuanto a su rendimiento.
 
 #figure(
   image("../imagenes/lighthouse_wuolah.png", width: 75%),
@@ -33,7 +31,7 @@ La plataforma obtiene una puntuación de rendimiento de 32 sobre 100, un resulta
 
 Además, su modelo de negocio basado en publicidad intensiva también perjudica la experiencia. Si bien es comprensible que la plataforma necesite monetizarse, la implementación actual penaliza en exceso al usuario gratuito con largos tiempos de espera para descargar cada recurso, a menos que se pague una suscripción mensual.
 
-Por otro lado los micropagos por descarga que ofrece Wuolah presentan otro problema fundamental. Cuando se introduce una recompensa económica, especialmente cuando es mínima, se corre el riesgo de transformar la motivación de los usuarios; el deseo genuino de ayudar es reemplazado por un interés transaccional de bajo valor. Este enfoque ha sido demostrado como algo que puede llegar a ser contraproducente. La investigación sobre la motivación ha demostrado que las recompensas externas pueden disminuir el interés propio por realizar una tarea, un efecto conocido como "Desplazamiento Motivacional" @Deci1999 @Frey2001.
+Por otro lado, los micropagos por descarga que ofrece Wuolah presentan otro problema fundamental: cuando se introduce una recompensa económica, especialmente cuando es mínima, se corre el riesgo de transformar la motivación de los usuarios; el deseo genuino de ayudar es reemplazado por un interés transaccional de bajo valor. Este enfoque ha sido demostrado como algo que puede llegar a ser contraproducente. La investigación sobre la motivación ha demostrado que las recompensas externas pueden disminuir el interés propio por realizar una tarea, un efecto conocido como "Desplazamiento Motivacional" @Deci1999 @Frey2001.
 
 Además, este modelo de incentivos tiene otra consecuencia negativa para las carreras técnicas. Al limitar las recompensas a los archivos PDF, ya que en estos es en los que se puede incrustar anuncios, se desincentiva a que los estudiantes compartan información en otros formatos más adecuados para ciertas áreas como puede ser en el caso de código, empobreciendo así la variedad y utilidad de los recursos disponibles en la plataforma.
 
@@ -56,7 +54,7 @@ El objetivo principal de este proyecto es crear y desplegar un prototipo de una 
 + Obtener automáticamente centros educativos y sus asignaturas mediante _web scraping_ y JetBrains SWOT.
 + Utilizar almacenamiento de objetos compatible con S3 para gestionar los archivos subidos por los usuarios.
 + Implementar búsqueda global mediante _Full Text Search_ de PostgreSQL.
-+ Desplegar la plataforma de forma portable usando Docker Compose en un VPS.
++ Desplegar la plataforma de forma portable usando Docker Compose en un VPS, haciéndola accesible públicamente en #link("https://nemsy.org")[nemsy.org].
 
 == Plan de trabajo
 

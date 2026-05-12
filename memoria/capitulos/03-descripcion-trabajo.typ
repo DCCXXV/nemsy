@@ -1,16 +1,34 @@
+#import "../template.typ": epigraph
 #import "@preview/fletcher:0.5.8": diagram, edge, node
 #import "@preview/chronos:0.3.0" as chronos
 #import "@preview/codly:1.3.0": *
+#import "@preview/ansi-render:0.8.0": ansi-render, terminal-themes
 #show: codly-init.with()
+
+#show figure.where(kind: table): set block(breakable: true)
+
+#let placeholder(height: 7cm, label: "captura pendiente") = rect(
+  width: 100%,
+  height: height,
+  stroke: 1pt + rgb("#a1a1aa"),
+  fill: rgb("#fafafa"),
+  align(center + horizon)[#text(fill: rgb("#71717a"), style: "italic")[TODO: #label]],
+)
 
 = Descripción del Trabajo
 
 #block(
   fill: rgb("#f0f0f0"),
   inset: 1em,
+  below: 1.5em,
 )[
   *Resumen:* En este capítulo se justifican las decisiones tecnológicas y se describe en detalle el desarrollo de la plataforma Nemsy.
 ]
+
+#epigraph(
+  [La calidad de un sistema no está determinada por el poder de sus componentes individuales, sino por cómo se eligen y se ensamblan para satisfacer las necesidades.],
+  [Grady Booch],
+)
 
 == Tecnologías evaluadas
 
@@ -310,36 +328,7 @@ Los paquetes del backend son los siguientes:
 
 === Autenticación
 
-La autenticación se delega completamente a Google OAuth2 por lo que el usuario no crea credenciales propias en Nemsy, sino que inicia sesión con su cuenta de Google. El flujo completo se ilustra en la @fig:oauth-sequence.
-
-#figure(
-  {
-    set text(size: 10pt)
-    pad(x: -1cm, chronos.diagram({
-      chronos._par("nav", display-name: "Navegador")
-      chronos._par("api", display-name: "Backend")
-      chronos._par("google", display-name: "Google OAuth2")
-      chronos._par("db", display-name: "PostgreSQL")
-
-      chronos._seq("nav", "api", comment: "GET /auth/login")
-      chronos._seq("api", "nav", comment: [302 $arrow.r$ accounts.google.com], dashed: true)
-      chronos._seq("nav", "google", comment: "solicitud de autorización")
-      chronos._seq("google", "nav", comment: "pantalla de autenticación", dashed: true)
-      chronos._seq("nav", "google", comment: "credenciales del usuario")
-      chronos._seq("google", "api", comment: "GET /auth/callback?code=...")
-      chronos._seq("api", "google", comment: [intercambio código $arrow.r$ token])
-      chronos._seq("google", "api", comment: "access token + perfil de usuario", dashed: true)
-      chronos._seq("api", "db", comment: "upsert usuario")
-      chronos._seq("db", "api", comment: "ok", dashed: true)
-      chronos._seq("api", "nav", comment: [Set-Cookie JWT + 302 $arrow.r$ /], dashed: true)
-    }))
-  },
-  caption: [Diagrama de secuencia del flujo de autenticación con Google OAuth2.],
-) <fig:oauth-sequence>
-
-Una vez completado el flujo, las rutas protegidas pasan por el middleware `AuthMiddleware`, que valida la cookie JWT en cada petición. La detección del centro educativo se realiza a partir del dominio del correo, si el usuario se autentica con una cuenta `@ucm.es`, se asocia automáticamente a la Universidad Complutense de Madrid sin necesidad de seleccionarla manualmente.
-
-Esta separación se refleja directamente en la estructura del router ya que Chi permite anidar grupos de rutas con middlewares independientes, de forma que las rutas públicas de autenticación, las rutas protegidas por JWT y las rutas exclusivas de administración quedan aisladas entre sí.
+La autenticación se delega completamente a Google OAuth2, por lo que el usuario no gestiona credenciales propias en Nemsy, sino que inicia sesión con su cuenta de Google. Una vez autenticado, el backend mantiene la sesión mediante un JSON Web Token firmado y almacenado en una _cookie_ del navegador, que se valida en cada petición por el _middleware_ `AuthMiddleware`. Las rutas administrativas pasan además por un segundo _middleware_ `AdminOnly` que comprueba el rol del usuario. Los detalles internos del flujo (anti-CSRF, validación del _ID Token_, estructura del JWT y cadena de _middlewares_) se desarrollan en @sec:auth-internals.
 
 === Despliegue
 
@@ -406,11 +395,11 @@ El diagrama de la @fig:arquitectura describe la arquitectura lógica del sistema
   caption: [Arquitectura de despliegue en el VPS con Docker Compose.],
 ) <fig:despliegue>
 
-Los tres servicios comparten una red interna gestionada por Docker, de forma que se comunican entre sí mediante el nombre del servicio (`db`, `backend`) sin exponer esos puertos al exterior. Los puertos del backend y la base de datos se publican únicamente en la interfaz de _loopback_ (`127.0.0.1:8081` y `127.0.0.1:5433`), accesibles desde el propio VPS para tareas de administración pero no desde Internet. El tráfico HTTPS público llega al frontend a través de Caddy @caddy-docs, un reverse proxy instalado en el host que termina TLS y reenvía las peticiones al contenedor correspondiente. Caddy se eligió frente a alternativas como Nginx por su gestión automática de certificados TLS mediante Let's Encrypt sin configuración adicional, lo que permite renovar los certificados de forma transparente sin intervención manual.
+Los tres servicios comparten una red interna gestionada por Docker, de forma que se comunican entre sí mediante el nombre del servicio (`db`, `backend`) sin exponer esos puertos al exterior. Los puertos del backend y la base de datos se publican únicamente en la interfaz de _loopback_ (`127.0.0.1:8081` y `127.0.0.1:5433`), accesibles desde el propio VPS para tareas de administración pero no desde Internet. El tráfico HTTPS público llega al frontend a través de Caddy @caddy-docs, un reverse proxy instalado en el host que termina TLS y reenvía las peticiones al contenedor correspondiente. Caddy fue elegido ante  alternativas como Nginx por su gestión automática de certificados TLS mediante Let's Encrypt sin configuración adicional, de esta forma se consiguen renovar los certificados sin necesidad de intervención manual.
 
-El estado persistente de PostgreSQL se almacena en un volumen nombrado (`pgdata`), desacoplado del ciclo de vida del contenedor, de forma que se pueden recrear los contenedores sin perder los datos. Los archivos subidos por los usuarios no se guardan en el VPS, sino en Hetzner Object Storage a través de la librería `minio-go`, lo que mantiene la máquina prácticamente sin estado.
+El estado persistente de PostgreSQL se almacena en un volumen nombrado `pgdata`, fuera del ciclo de vida del contenedor, permitiendo poder reemplazar los contenedores sin perder los datos. Los archivos subidos por los usuarios no se guardan en el VPS, sino en Hetzner Object Storage a través de la librería `minio-go`. Esto mantiene la máquina prácticamente sin estado.
 
-Toda la configuración sensible (credenciales de base de datos, secreto JWT, claves OAuth2 y S3) se inyecta a los contenedores mediante variables de entorno definidas en un fichero `.env` presente únicamente en el servidor. De este modo, el mismo `docker-compose.yml` sirve tanto para desarrollo local como para producción, cambiando solo el contenido del `.env`, y el entorno resulta reproducible con un único comando.
+Toda la configuración sensible como los credenciales de base de datos, el secreto JWT, o las claves de OAuth2 y S3, se inyectan a los contenedores mediante variables de entorno definidas en un fichero `.env` presente únicamente en el servidor. De este modo, el mismo `docker-compose.yml` sirve tanto para desarrollo local como para producción, cambiando solo el contenido del `.env`, y el entorno resulta reproducible con un único comando.
 
 #figure(
   ```yaml
@@ -475,7 +464,7 @@ El diseño de Nemsy evolucionó de forma iterativa a lo largo del desarrollo. La
     image("../imagenes/nemsy_desplegado.png"),
     image("../imagenes/nemsy_compacto.png"),
   ),
-  caption: [Interfaz actual de Nemsy en modo desplegado (arriba) y compacto (abajo).],
+  caption: [Interfaz actual de Nemsy en modo desplegado y modo compacto.],
 ) <fig:nemsy-modos>
 
 === Sistema de diseño
@@ -506,14 +495,14 @@ La paleta se divide en dos grupos. Por un lado, los colores base, una escala neu
         width: 100%,
         height: 3.6em,
         inset: 5pt,
-        align(bottom + center, text(size: 7.5pt, fill: fg, font: "Courier New")[#label]),
+        align(bottom + center, text(size: 7.5pt, fill: fg)[#label]),
       )
     }
 
     stack(
       spacing: 2em,
       {
-        text(size: 12pt, fill: rgb("#3f3f46"))[Acento]
+        text(size: 12pt, fill: rgb("#3f3f46"))[Acentos]
         grid(
           columns: 6,
           column-gutter: 3pt,
@@ -548,6 +537,27 @@ La paleta se divide en dos grupos. Por un lado, los colores base, una escala neu
   image("../imagenes/nemsy_busqueda.png", width: 100%),
   caption: [Página de búsqueda global de Nemsy.],
 ) <fig:nemsy-busqueda>
+
+#figure(
+  image("../imagenes/nemsy_hero.png", width: 100%),
+  caption: [Página de inicio para usuarios no autenticados.],
+) <fig:nemsy-hero>
+
+#figure(
+  image("../imagenes/nemsy_onboarding.png", width: 100%),
+  caption: [Selección manual de universidad durante el _onboarding_.],
+) <fig:nemsy-onboarding>
+
+#figure(
+  grid(
+    columns: 3,
+    column-gutter: 0.5em,
+    image("../imagenes/nemsy_movil_inicio.png", width: 100%),
+    image("../imagenes/nemsy_movil_busqueda.png", width: 100%),
+    image("../imagenes/nemsy_movil_perfil.png", width: 100%),
+  ),
+  caption: [Vistas móviles: listado de recursos, búsqueda global y perfil de usuario.],
+) <fig:nemsy-movil>
 
 == Diseño de la base de datos
 
@@ -615,17 +625,17 @@ El esquema se articula en torno al eje educativo `universities` $arrow.r$ `studi
       align: left,
       table.header([*Tabla*], [*Responsabilidad*]),
       [`universities`],
-      [Catálogo de universidades con su dominio de correo (`ucm.es`, `upm.es`, …), usado para asociar automáticamente al usuario al iniciar sesión con Google.],
+      [Lista de universidades con su dominio de correo (`ucm.es`, `upm.es`, …), usado para asociar automáticamente al usuario al iniciar sesión con Google.],
 
       [`studies`],
       [Grados o titulaciones ofertados por una universidad. Cada estudio pertenece a una universidad mediante `university_id`.],
 
       [`subjects`], [Asignaturas que componen un estudio, junto con el curso (`year`) al que pertenecen.],
       [`users`],
-      [Usuarios autenticados vía Google. Se almacena `google_sub` como identificador estable, el `email`, el `hd` (_hosted domain_) del que se deduce la universidad, un `username` único generado a partir del correo y un campo `role` para distinguir administradores.],
+      [Usuarios autenticados vía Google. Se almacena el `google_sub` como identificador, el `email`, el `hd` (_hosted domain_) del que se deduce la universidad, un `username` único generado a partir del correo y un campo `role` para distinguir administradores de usuarios corrientes.],
 
       [`resources`],
-      [Publicaciones subidas por los usuarios. Cada recurso agrupa uno o varios archivos bajo un mismo `title` y `description`, y mantiene un contador `download_count` y un `search_vector` para la búsqueda de texto completo.],
+      [Apuntes y demás archivos subidos por los usuarios. Cada recurso agrupa uno o varios archivos bajo un mismo `title` y `description`, y mantiene un contador `download_count` y un `search_vector` para la búsqueda de texto completo.],
 
       [`resource_files`],
       [Archivos individuales que componen un recurso, con su `s3_key` (clave en Object Storage), nombre original y tamaño.],
@@ -640,13 +650,13 @@ El esquema se articula en torno al eje educativo `universities` $arrow.r$ `studi
   caption: [Tablas del esquema y su responsabilidad.],
 ) <tab:entidades>
 
-Todas las claves foráneas se declaran con `ON DELETE CASCADE`, de forma que al eliminar un usuario se borran en cascada sus recursos, archivos, denuncias y asignaturas fijadas, sin dejar filas huérfanas ni necesidad de lógica de limpieza en el backend.
+Todas las claves foráneas se declaran con `ON DELETE CASCADE`, de forma que al eliminar un usuario se borran en cascada sus recursos, archivos, denuncias y asignaturas fijadas, por lo que no quedan filas huérfanas ni es necesario ninguna lógica de limpieza en el backend.
 
 === Evolución mediante migraciones
 
 El esquema no se definió en un único fichero monolítico, sino que se construyó de forma incremental a medida que crecieron los requisitos de la plataforma. Para gestionar esta evolución se utilizó `golang-migrate` @golang-migrate, una herramienta que aplica migraciones SQL numeradas y mantiene una tabla `schema_migrations` interna para saber qué versión está activa. Cada migración consta de dos ficheros, `NNN_nombre.up.sql` para aplicar el cambio y `NNN_nombre.down.sql` para revertirlo, lo que permite volver a una versión anterior sin intervención manual sobre la base de datos.
 
-La @tab:migraciones recoge el historial completo de migraciones del proyecto, que refleja la evolución natural del esquema desde la versión inicial hasta el estado actual.
+La @tab:migraciones recoge el historial completo de migraciones del proyecto, que refleja la evolución del esquema desde la versión inicial hasta el estado actual con cada nueva funcionalidad que se requería modificar de este.
 
 #figure(
   {
@@ -709,7 +719,95 @@ Además del índice GIN para la búsqueda, el esquema define varios índices B-t
 
 == Implementación del backend
 
-Detalles de implementación del backend en Go...
+Una vez establecidas la arquitectura general en la @fig:arquitectura y las elecciones tecnológicas, esta sección entra en los detalles de la implementación. Se describen primero la organización del proyecto y el proceso de arranque del servidor, y a continuación los aspectos técnicamente más relevantes: la generación de código a partir de SQL, el tratamiento transaccional de las operaciones multi-paso, la gestión de archivos contra el almacenamiento de objetos, los detalles internos de la autenticación y, por último, el sistema de moderación.
+
+=== Estructura del proyecto
+
+El backend sigue el _layout_ convencional en Go, que separa los puntos de entrada ejecutables del código reutilizable mediante dos directorios de primer nivel, `cmd/`, que contiene un subdirectorio por cada binario producido por el módulo, e `internal/`, que aloja los paquetes de la aplicación. El compilador de Go aplica una restricción especial sobre `internal/`, impidiendo que sus paquetes sean importados desde fuera del módulo @go-internal-packages, lo que garantiza que la API interna del backend no se filtre como dependencia accidental. La @fig:backend-tree muestra el árbol resultante.
+
+La @fig:backend-tree reproduce la salida del comando `tree` ejecutado sobre la raíz del backend, con los directorios resaltados como en una terminal real.
+
+#figure(
+  block(
+    fill: rgb("#000000"),
+    radius: 4pt,
+    inset: (x: 12pt, y: 8pt),
+    width: 100%,
+    {
+      set par(leading: 0.45em)
+      align(left, ansi-render(
+        read("../imagenes/backend-tree.ansi"),
+        theme: terminal-themes.vscode,
+        font: "DejaVu Sans Mono",
+        size: 8.5pt,
+      ))
+    },
+  ),
+  caption: [Salida del comando `tree` sobre la raíz del backend.],
+  kind: image,
+) <fig:backend-tree>
+
+El directorio `cmd/` aloja cuatro binarios independientes. El principal, `cmd/server`, es el servidor HTTP descrito en el apartado @sec:bootstrap. Los dos siguientes, `cmd/seed-universities` y `cmd/seed-studies`, son utilidades de línea de comandos que cargan respectivamente el listado de universidades españolas y los grados ofertados por cada una; se ejecutan una sola vez durante el despliegue inicial. El último, `cmd/gen-token`, genera tokens JWT firmados con el mismo secreto que el servidor para usarlos en las pruebas de carga con k6 descritas en @sec:k6, evitando así depender del flujo OAuth2 durante esas pruebas.
+
+Dentro de `internal/`, los paquetes se organizan por dominio funcional. El paquete `app` define el _struct_ `App` y la interfaz `QuerierWithTx` que comparten todos los _handlers_, ya introducidos en @cod:app-struct. El paquete `auth` concentra el flujo OAuth2 con Google, la generación y validación de tokens JWT y los dos _middlewares_ de la cadena de autenticación, `AuthMiddleware` y `AdminOnly`. Los paquetes `resources`, `users`, `studies`, `universities` y `admin` agrupan los _handlers_ HTTP correspondientes a cada dominio, siendo `resources` el más extenso por concentrar la lógica de creación de recursos con archivos, descargas, búsqueda y reportes.
+
+Los tres paquetes restantes son de infraestructura. El paquete `storage` encapsula el cliente `minio-go` tras una pequeña fachada, lo que permite reemplazar el proveedor S3 sin tocar el resto del código. El paquete `search` aloja la función `PrefixQuery`, que transforma la entrada de usuario en una expresión `tsquery` compatible con el operador `@@` de PostgreSQL. Finalmente, el paquete `db` se subdivide en tres directorios complementarios: `queries/` con las consultas SQL escritas a mano, `migrations/` con las migraciones numeradas que aplica `golang-migrate` (véase @tab:migraciones), y `generated/` con el código Go que sqlc emite a partir de los dos anteriores.
+
+=== Arranque del servidor <sec:bootstrap>
+
+El binario `cmd/server` concentra la totalidad de la inicialización del backend en una única función `main`, siguiendo el principio de _composition root_ @composition-root: todas las dependencias se construyen en el mismo punto y se inyectan explícitamente en los componentes que las necesitan, sin contenedores de inyección de dependencias ni configuración global oculta. La @fig:bootstrap-flow ilustra las cinco fases del arranque.
+
+#figure(
+  {
+    set text(size: 9pt)
+    diagram(
+      node-stroke: .7pt,
+      node-corner-radius: 4pt,
+      node-inset: 6pt,
+      spacing: (0.6cm, 0.8cm),
+      node((0, 0), align(center)[1. Carga de\ configuración], name: <cfg>, fill: rgb("#f4f4f5")),
+      node((1, 0), align(center)[2. Conexión a\ PostgreSQL], name: <pg>, fill: rgb("#dcfce7")),
+      node((2, 0), align(center)[3. Cliente S3], name: <s3>, fill: rgb("#fef9c3")),
+      node((2, 1), align(center)[4. Ensamblaje\ de `App`], name: <app>, fill: rgb("#dbeafe")),
+      node((1, 1), align(center)[5. Router y\ _listen_], name: <r>, fill: rgb("#ede9fe")),
+      edge(<cfg>, <pg>, "->"),
+      edge(<pg>, <s3>, "->"),
+      edge(<s3>, <app>, "->"),
+      edge(<app>, <r>, "->"),
+    )
+  },
+  caption: [Fases del arranque del servidor en `cmd/server/main.go`.],
+) <fig:bootstrap-flow>
+
+La configuración se inyecta exclusivamente a través de variables de entorno, siguiendo la metodología _twelve-factor_ @twelve-factor que recomienda mantener una separación estricta entre código y configuración. La @tab:env-vars recoge las variables consumidas por el servidor; cualquier variable obligatoria ausente provoca el aborto inmediato del proceso mediante `log.Fatal`, evitando que el servidor arranque en un estado inconsistente.
+
+#figure(
+  {
+    set par(justify: false)
+    set text(size: 10pt)
+    table(
+      columns: (auto, auto, 1fr),
+      align: (left, center, left),
+      table.header([*Variable*], [*Obligatoria*], [*Propósito*]),
+      [`DATABASE_URL`], [Sí], [Cadena de conexión a PostgreSQL, consumida por `pgxpool`.],
+      [`JWT_SECRET`], [Sí], [Clave HMAC para firmar y verificar tokens JWT.],
+      [`S3_ENDPOINT`], [Sí], [Endpoint del proveedor de almacenamiento de objetos compatible con S3.],
+      [`S3_ACCESS_KEY`, `S3_SECRET_KEY`], [Sí], [Credenciales del bucket de almacenamiento.],
+      [`S3_BUCKET`], [Sí], [Nombre del bucket donde se almacenan los archivos de los recursos.],
+      [`S3_USE_SSL`], [No], [Habilita TLS contra el endpoint S3. Por defecto activado.],
+      [`ALLOWED_ORIGIN`],
+      [No],
+      [Origen permitido para CORS y _redirect_ tras el _login_. Por defecto `http://localhost:5173` en desarrollo.],
+
+      [`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`], [Sí], [Credenciales del cliente OAuth2 registrado en Google Cloud.],
+    )
+  },
+  caption: [Variables de entorno consumidas por el servidor.],
+) <tab:env-vars>
+
+Tras validar la configuración, se inicializa el _pool_ de conexiones a PostgreSQL mediante `pgxpool.New`, que abre y reutiliza un conjunto de conexiones físicas a la base de datos. Sobre este _pool_ se construye el _querier_ generado por sqlc (`db.New(pool)`), que es la implementación concreta de la interfaz `QuerierWithTx` introducida en @cod:app-struct. A continuación se instancia el cliente S3 y, con las tres dependencias disponibles, se ensambla el _struct_ `App` que se inyectará en cada _handler_.
+
+La etapa final construye el _router_ Chi y registra las rutas en tres grupos diferenciados según el _middleware_ que les aplica, como muestra la muestra de @cod:chi-routes. Esta separación se apoya en la capacidad de Chi de anidar grupos de rutas con _middlewares_ independientes, permitiendo que las rutas públicas de autenticación, las rutas protegidas por JWT y las rutas exclusivas de administración convivan en un mismo árbol sin condicionales repetidos en cada _handler_.
 
 #figure(
   ```go
@@ -731,19 +829,725 @@ Detalles de implementación del backend en Go...
       })
   })
   ```,
-  caption: [Estructura de grupos de rutas en Chi con middlewares anidados.],
+  caption: [Estructura de grupos de rutas en Chi con _middlewares_ anidados.],
   supplement: [Código],
 ) <cod:chi-routes>
 
+El servidor se lanza en una _goroutine_ independiente para que la _goroutine_ principal pueda quedar bloqueada a la espera de una señal del sistema operativo (`SIGINT` o `SIGTERM`). Al recibirla, el proceso cierra el servidor de forma ordenada antes de devolver el control, evitando interrumpir peticiones en curso y permitiendo que `defer pool.Close()` libere las conexiones a PostgreSQL.
+
+=== Generación de código con sqlc <sec:sqlc>
+
+La capa de persistencia es la que más decisiones de diseño concentra del backend. La elección de sqlc @sqlc-docs frente a un ORM tradicional responde a una preferencia por la transparencia, y a la filosofía de tratar el SQL como fuente de verdad y al código Go como un derivado de este. Este enfoque es bastante más habitual en proyectos Go que en el ecosistema Java, donde el ORM (típicamente JPA) es prácticamente la opción por defecto. La idea es que el desarrollador escriba las consultas como las escribiría en un cliente de PostgreSQL, anotándolas con una directiva especial que indica el nombre y la cardinalidad del resultado y la herramienta las lee y genera funciones Go fuertemente tipadas que las ejecutan, con _structs_ para los parámetros y para las filas devueltas. A diferencia de un _query builder_, que va componiendo el SQL en tiempo de ejecución a partir de llamadas encadenadas, en sqlc el SQL ya está escrito tal cual se envía a PostgreSQL, lo único que se genera automáticamente es el código de pegamento que lo conecta con Go.
+
+#figure(
+  grid(
+    columns: 2,
+    column-gutter: 1em,
+    [
+      *Entrada* (`queries/resources.sql`):
+      ```sql
+      -- name: CreateResource :one
+      INSERT INTO resources (
+          owner_id, subject_id,
+          title, description
+      ) VALUES (
+          $1, $2, $3, $4
+      )
+      RETURNING id, owner_id, subject_id,
+          title, description, created_at,
+          download_count;
+      ```
+    ],
+    [
+      *Salida* (`generated/resources.sql.go`):
+      ```go
+      type CreateResourceParams struct {
+          OwnerID     int32
+          SubjectID   int32
+          Title       string
+          Description pgtype.Text
+      }
+
+      func (q *Queries) CreateResource(
+          ctx context.Context,
+          arg CreateResourceParams,
+      ) (CreateResourceRow, error) { /* ... */ }
+      ```
+    ],
+  ),
+  caption: [Consulta SQL anotada con `-- name: ... :one` y código Go generado por sqlc a partir de ella.],
+  supplement: [Código],
+) <fig:sqlc-codegen>
+
+Este enfoque tiene tres ventajas frente a un ORM. La primera, ya mencionada en @tab:database, es que permite aprovechar funcionalidades específicas de PostgreSQL como `tsvector`, columnas generadas o expresiones de tipos compuestos sin tener que envolverlas en abstracciones genéricas. La segunda es que el SQL queda visible en el repositorio, en lugar de oculto detrás de capas de _builders_ que el desarrollador ha de mentalmente traducir a la consulta real que se ejecuta. La tercera es que cualquier error de sintaxis SQL o de tipos se detecta en el momento de generar el código, no en tiempo de ejecución, desplazando una clase entera de errores del entorno de producción al de desarrollo.
+
+La opción `emit_interface: true` del fichero `sqlc.yaml` instruye a la herramienta para que, además de las funciones, emita la interfaz `Querier` que las agrupa, recogida parcialmente en la @cod:querier. Esta interfaz es el contrato que cumple la implementación generada (`*Queries`) y, fundamentalmente, el que cualquier _mock_ de pruebas debe cumplir también. Esta decisión es la que habilita la estrategia de _testing_ del paquete `auth` y de los _handlers_ HTTP, descrita en @sec:tests-backend.
+
+#figure(
+  ```go
+  type Querier interface {
+      CreateResource(ctx context.Context, arg CreateResourceParams) (CreateResourceRow, error)
+      CreateResourceFile(ctx context.Context, arg CreateResourceFileParams) (ResourceFile, error)
+      DeleteResource(ctx context.Context, arg DeleteResourceParams) error
+      GetResourceWithOwner(ctx context.Context, id int32) (GetResourceWithOwnerRow, error)
+      ListResourcesBySubjectWithOwnerPaginated(ctx context.Context,
+          arg ListResourcesBySubjectWithOwnerPaginatedParams) ([]ListResourcesBySubjectWithOwnerPaginatedRow, error)
+      // ...
+  }
+  ```,
+  caption: [Fragmento de la interfaz `Querier` generada por sqlc.],
+  supplement: [Código],
+) <cod:querier>
+
+Sobre la interfaz `Querier` generada por sqlc, el paquete `app` define una extensión propia llamada `QuerierWithTx` que añade un único método, `WithTx(tx pgx.Tx) *Queries`, ya introducido en @cod:app-struct. Este método permite obtener una nueva instancia del _querier_ asociada a una transacción concreta, manteniendo la misma API que la versión sin transacción. La utilidad de esta extensión se materializa en el siguiente apartado.
+
+=== Creación de un recurso: transacciones y compensación <sec:create-resource>
+
+La creación de un recurso es la operación más compleja de la API porque atraviesa los dos sistemas de persistencia simultáneamente: PostgreSQL (que almacena los metadatos del recurso y el listado de archivos asociados) y el almacenamiento de objetos S3 (donde residen los bytes de cada archivo). Cualquier fallo a mitad del proceso ha de dejar la plataforma en un estado consistente, sin filas de `resource_files` apuntando a objetos inexistentes ni objetos huérfanos en el _bucket_ que ningún registro referencie.
+
+El problema fundamental es que PostgreSQL y S3 son dos sistemas independientes, sin un coordinador transaccional común que los abarque a ambos. La estrategia adoptada se inspira en el patrón de _saga_ con compensación @saga-pattern: la operación se divide en pasos, y cualquier fallo en un paso intermedio dispara acciones compensatorias que deshacen los pasos previos. La @fig:create-resource-flow ilustra el flujo completo.
+
+#figure(
+  {
+    set text(size: 9pt)
+    pad(x: -0.5cm, chronos.diagram({
+      chronos._par("c", display-name: "Cliente")
+      chronos._par("h", display-name: "Handler")
+      chronos._par("db", display-name: "PostgreSQL")
+      chronos._par("s3", display-name: "S3")
+
+      chronos._seq("c", "h", comment: [POST /api/resources \ multipart])
+      chronos._seq("h", "db", comment: [BEGIN])
+      chronos._seq("h", "db", comment: [INSERT resources])
+      chronos._seq("db", "h", comment: [id], dashed: true)
+      chronos._loop("por cada archivo", {
+        chronos._seq("h", "s3", comment: [PutObject])
+        chronos._alt("error S3", {
+          chronos._seq("h", "s3", comment: [DeleteMultiple\ (claves previas)])
+          chronos._seq("h", "db", comment: [ROLLBACK])
+          chronos._seq("h", "c", comment: [500 Internal], dashed: true)
+        })
+        chronos._seq("h", "db", comment: [INSERT resource_files])
+      })
+      chronos._seq("h", "db", comment: [COMMIT])
+      chronos._seq("h", "c", comment: [201 Created], dashed: true)
+    }))
+  },
+  caption: [Creación de un recurso con varios archivos, mostrando el camino de éxito y la rama de compensación ante un fallo en S3.],
+) <fig:create-resource-flow>
+
+El _handler_ comienza abriendo una transacción con `h.app.DB.Begin` y registrando inmediatamente un `defer tx.Rollback`. Esta línea es fundamental: garantiza que, si la función retorna por cualquier camino antes del `Commit`, la transacción se descarta automáticamente. PostgreSQL ignora el `Rollback` posterior si el `Commit` ya se ha ejecutado con éxito, de forma que el `defer` actúa como red de seguridad sin penalizar el camino feliz.
+
+#figure(
+  ```go
+  tx, err := h.app.DB.Begin(r.Context())
+  if err != nil { /* 500 */ }
+  defer tx.Rollback(r.Context()) // red de seguridad
+  qtx := h.app.Queries.WithTx(tx)
+
+  resource, err := qtx.CreateResource(r.Context(), db.CreateResourceParams{
+     // ...
+  })
+  if err != nil { /* 500 */ }
+
+  var uploadedKeys []string // journal para la compensación
+  for _, fh := range files {
+      s3Key := fmt.Sprintf("resources/%d/%s", resource.ID, sanitizeFilename(fh.Filename))
+      if err := h.app.Storage.Upload(r.Context(), s3Key, f, fh.Size, contentType); err != nil {
+          h.cleanupS3(r, uploadedKeys) // compensación
+          http.Error(w, "...", http.StatusInternalServerError);
+          return
+      }
+      uploadedKeys = append(uploadedKeys, s3Key)
+
+      if _, err := qtx.CreateResourceFile(r.Context(), db.CreateResourceFileParams{
+          // ...
+      }); err != nil {
+          h.cleanupS3(r, uploadedKeys) // compensación
+          http.Error(w, "...", http.StatusInternalServerError);
+          return
+      }
+  }
+
+  if err := tx.Commit(r.Context()); err != nil {
+      h.cleanupS3(r, uploadedKeys) // compensación
+      http.Error(w, "...", http.StatusInternalServerError);
+      return
+  }
+  ```,
+  caption: [Creación de un recurso con compensación en S3 (`internal/resources/handler.go`).],
+  supplement: [Código],
+) <cod:create-resource>
+
+Sobre esa transacción se construye un _querier_ alternativo mediante `WithTx(tx)`. Todas las consultas ejecutadas a través de `qtx` participan automáticamente en la transacción, mientras que las llamadas que pudieran hacerse contra el _querier_ original seguirían viendo el estado anterior al `Begin`. Este patrón permite escribir el resto del _handler_ sin diferenciar entre operaciones transaccionales y no transaccionales: la API de ambos _queriers_ es exactamente la misma gracias a la interfaz generada por sqlc.
+
+El bucle de archivos alterna inserciones en S3 y en la base de datos. Cada subida a S3 que tiene éxito se registra en la lista local `uploadedKeys`, que actúa como _journal_ de las acciones que requerirían compensación si algo fallase a partir de ese punto. La función auxiliar `cleanupS3` invoca `Storage.DeleteMultiple` con esa lista, aprovechando el endpoint _bulk_ de la API S3 para borrar todos los objetos huérfanos en una única petición. Es importante destacar que el `Rollback` automático de PostgreSQL es suficiente para limpiar las filas de `resource_files` insertadas con `qtx`, pero no afecta a S3, motivo por el cual la compensación explícita es necesaria.
+
+Existe una ventana muy pequeña en la que el sistema podría quedar inconsistente: si el `Commit` final tiene éxito en PostgreSQL pero la respuesta no llega al cliente, el cliente reintentará la operación y se crearán archivos duplicados con el mismo contenido pero distinta `s3_key`. Esta posibilidad se acepta como _trade-off_ frente a la complejidad de implementar idempotencia mediante claves de cliente, decisión razonable dado que el coste de un duplicado ocasional es bajo y el usuario puede borrarlo manualmente.
+
+=== Descarga de archivos con redirección y empaquetado en _streaming_ <sec:download>
+
+La descarga es la operación dual a la creación y plantea un problema distinto, ya que los recursos pueden contener un único fichero o varios y los ficheros pueden llegar a pesar 100 MB, por lo que volcar todos los bytes en memoria del backend antes de enviarlos al cliente sería tanto un desperdicio de RAM como un cuello de botella de latencia, sobre todo en un VPS con 4 GB compartidos entre todos los servicios. Por ello, los dos endpoints de descarga (`/api/resources/{id}/download` para el paquete completo y `/api/resources/{id}/files/{fileId}/download` para un único archivo) se implementan con dos estrategias complementarias que evitan en todo momento mantener un fichero entero en memoria.
+
+El primer endpoint adapta su comportamiento al número de ficheros del recurso. Si solo hay uno, no tiene sentido envolverlo en un ZIP, así que el _handler_ genera una URL prefirmada de S3 con 15 minutos de validez y devuelve un `307 Temporary Redirect` apuntando a esa URL. El navegador del usuario sigue la redirección y descarga el fichero directamente desde el _bucket_, sin que el tráfico atraviese el backend. La cabecera `response-content-disposition` incluida en la URL prefirmada (gestionada en `storage/s3.go`) garantiza que el navegador respete el nombre original del fichero al guardarlo, en lugar de la `s3_key` interna.
+
+#figure(
+  ```go
+  if len(files) == 1 {
+      presigned, err := h.app.Storage.GetPresignedURL(
+          r.Context(), files[0].S3Key, 15*time.Minute, files[0].FileName,
+      )
+      if err != nil {
+          http.Error(w, "download error", http.StatusInternalServerError)
+          return
+      }
+      http.Redirect(w, r, presigned, http.StatusTemporaryRedirect)
+      return
+  }
+  ```,
+  caption: [Descarga de un único fichero mediante URL prefirmada de S3.],
+  supplement: [Código],
+) <cod:download-single>
+
+Cuando el recurso contiene varios ficheros, no es posible delegar el empaquetado en S3, así que el backend construye un ZIP al vuelo. El _handler_ instancia un `zip.Writer` apuntando directamente al `http.ResponseWriter` y, para cada fichero, abre un _stream_ de lectura contra S3 con `Storage.GetObject` y copia los bytes en bloques de 32 KB hacia la entrada correspondiente del ZIP. De este modo, los datos fluyen de S3 a backend y luego al navegador, sin que el proceso retenga más de un buffer de 32 KB en ningún momento. El método de compresión utilizado es `zip.Store` (sin compresión), porque la mayoría de los ficheros que sube el usuario, principalmente PDF y archivos comprimidos, ya están comprimidos y un segundo pase solo añadiría coste de CPU sin reducir tamaño.
+
+#figure(
+  ```go
+  zw := zip.NewWriter(w)
+  defer zw.Close()
+
+  for _, file := range files {
+      obj, _, err := h.app.Storage.GetObject(r.Context(), file.S3Key)
+      if err != nil {
+          return // abandona el ZIP en mitad del envío
+      }
+      writer, err := zw.CreateHeader(&zip.FileHeader{
+          Name: file.FileName, Method: zip.Store,
+      })
+      if err != nil {
+          obj.Close()
+          return
+      }
+
+      buf := make([]byte, 32*1024)
+      for {
+          n, readErr := obj.Read(buf)
+          if n > 0 { writer.Write(buf[:n]) }
+          if readErr != nil { break }
+      }
+      obj.Close()
+  }
+  ```,
+  caption: [Empaquetado en ZIP construido al vuelo sobre el `http.ResponseWriter`.],
+  supplement: [Código],
+  placement: auto,
+) <cod:download-zip>
+
+El endpoint de descarga individual (`DownloadFile`) sigue una lógica similar pero más sencilla, ya que tras localizar el fichero por su identificador abre el flujo de S3 y lo copia íntegro al `ResponseWriter` con `io.Copy`, dejando que la implementación de la librería estándar maneje los _buffers_ internos. Es la operación que sirve, por ejemplo, las previsualizaciones de PDF dentro de la propia interfaz, lo que requiere que la cabecera `Content-Disposition` se configure como `inline` en lugar de `attachment` para que el navegador renderice el fichero en lugar de proponer guardarlo.
+
+Una particularidad de este diseño es que el contador `download_count` solo se incrementa en el endpoint del paquete completo, antes de iniciar la transferencia, y no en `DownloadFile`. Esta decisión refleja la intención del modelo, ya que una descarga representa la intención del usuario de obtener todo el material asociado a un recurso, mientras que la apertura individual de un fichero suele formar parte del flujo de previsualización dentro de la propia interfaz, por lo que contarla como descarga inflaría artificialmente las estadísticas mostradas en el perfil del autor.
+
+=== Detalles internos de la autenticación <sec:auth-internals>
+
+La @fig:oauth-sequence representa el flujo completo de autenticación, desde que el usuario pulsa el botón de _login_ hasta que recibe la _cookie_ de sesión, mostrando las cuatro partes que intervienen y la secuencia de mensajes intercambiados.
+
+#figure(
+  {
+    set text(size: 10pt)
+    pad(x: -1cm, chronos.diagram({
+      chronos._par("nav", display-name: "Navegador")
+      chronos._par("api", display-name: "Backend")
+      chronos._par("google", display-name: "Google OAuth2")
+      chronos._par("db", display-name: "PostgreSQL")
+
+      chronos._seq("nav", "api", comment: "GET /auth/login")
+      chronos._seq("api", "nav", comment: [302 $arrow.r$ accounts.google.com], dashed: true)
+      chronos._seq("nav", "google", comment: "solicitud de autorización")
+      chronos._seq("google", "nav", comment: "pantalla de autenticación", dashed: true)
+      chronos._seq("nav", "google", comment: "credenciales del usuario")
+      chronos._seq("google", "api", comment: "GET /auth/callback?code=...")
+      chronos._seq("api", "google", comment: [intercambio código $arrow.r$ token])
+      chronos._seq("google", "api", comment: "access token + perfil de usuario", dashed: true)
+      chronos._seq("api", "db", comment: "upsert usuario")
+      chronos._seq("db", "api", comment: "ok", dashed: true)
+      chronos._seq("api", "nav", comment: [Set-Cookie JWT + 302 $arrow.r$ /], dashed: true)
+    }))
+  },
+  caption: [Diagrama de secuencia del flujo de autenticación con Google OAuth2.],
+) <fig:oauth-sequence>
+
+Sobre ese flujo, el backend implementa cuatro piezas internas que conviene describir con detalle, ya que cada una resuelve un problema de seguridad concreto. En orden de aparición durante una sesión de usuario son el `StateStore` que protege el flujo OAuth2 frente a ataques CSRF, la generación del token JWT firmado, el `AuthMiddleware` que lo valida en cada petición y el _middleware_ adicional `AdminOnly` que restringe las rutas administrativas.
+
+La primera pieza que entra en juego es el `StateStore`. Cuando el usuario pulsa "iniciar sesión", el `LoginHandler` genera una cadena aleatoria de 16 bytes codificada en base64 y la registra en el almacén con un TTL de cinco minutos antes de redirigir al usuario a la pantalla de Google. Esta cadena viaja como parámetro `state` en la URL de autorización y Google la reenvía intacta al `CallbackHandler` cuando el usuario completa el _login_. El _handler_ comprueba que el `state` recibido estaba en el almacén y lo elimina inmediatamente, por lo que un atacante no podría inducir a un usuario autenticado a ejecutar una autorización maliciosa simplemente enviándole una URL de _callback_ falsa, ya que sin un `state` válido emitido por nosotros la petición se rechaza con `401 Unauthorized` @oauth2-csrf. La implementación del almacén es deliberadamente sencilla, un `map[string]time.Time` protegido por un `sync.Mutex`, suficiente para una sola instancia del backend y sin las complicaciones de un servicio externo como Redis.
+
+#figure(
+  ```go
+  type StateStore struct {
+      m   map[string]time.Time
+      mu  sync.Mutex
+      ttl time.Duration
+  }
+
+  func (s *StateStore) Put(state string) {
+      s.mu.Lock()
+      defer s.mu.Unlock()
+      s.m[state] = time.Now().Add(s.ttl)
+  }
+
+  func (s *StateStore) Check(state string) bool {
+      s.mu.Lock()
+      defer s.mu.Unlock()
+      exp, ok := s.m[state]
+      if !ok {
+          return false
+      }
+      delete(s.m, state)
+      return time.Now().Before(exp)
+  }
+  ```,
+  caption: [Almacén de _state_ OAuth2 con TTL en `internal/auth/statestore.go`.],
+  supplement: [Código],
+) <cod:statestore>
+
+Una vez verificado el `state`, el `CallbackHandler` intercambia el código de autorización por un _ID Token_ con Google, lo valida criptográficamente con la librería `idtoken` que descarga las claves públicas del servidor de Google, comprueba la firma RS256 y extrae la información del usuario del _payload_. Si es la primera vez que ese correo aparece en la base de datos se crea un nuevo registro intentando un `username` derivado del correo, con sufijos numéricos crecientes en caso de colisión hasta encontrar uno libre. La universidad del usuario se asocia automáticamente buscando el dominio del correo en la tabla `universities`, lo que en la práctica reconoce a un estudiante de `@ucm.es` como miembro de la Complutense sin que tenga que seleccionarla manualmente.
+
+A partir de ese punto la autenticación deja de depender de Google y se pasa a una sesión propia mediante un JSON Web Token @jwt-rfc firmado con HMAC-SHA256, almacenado en una _cookie_ del navegador. Al usar JWT frente a un esquema de sesiones en servidor se mantiene un backend sin estado, ya que cualquier nodo puede validar el token sin necesidad de consultar una base de datos compartida, lo que simplifica la posibilidad de escalar horizontalmente en el futuro. La @tab:jwt-claims recoge los _claims_ que se incrustan en el token.
+
+#figure(
+  {
+    set par(justify: false)
+    set text(size: 10pt)
+    table(
+      columns: (auto, auto, auto, 1fr),
+      align: left,
+      table.header([*Claim*], [*Tipo*], [*Origen*], [*Propósito*]),
+      [`sub`], [string], [ID Token], [Identificador estable del usuario en Google, no cambia aunque cambie el correo.],
+      [`email`], [string], [ID Token], [Correo electrónico del usuario.],
+      [`hd`],
+      [string],
+      [ID Token],
+      [_Hosted domain_ del correo (`ucm.es`, `upm.es`, …), usado para asociar la universidad.],
+
+      [`user_id`],
+      [int],
+      [Tabla `users`],
+      [Identificador interno del usuario en Nemsy, usado por los _handlers_ para sus consultas.],
+
+      [`role`], [string], [Tabla `users`], [Vale `user` o `admin`, controla el acceso a las rutas administrativas.],
+      [`exp`],
+      [int],
+      [Backend (now + 7d)],
+      [Marca temporal de expiración del token, comprobada por la librería JWT en cada validación.],
+    )
+  },
+  caption: [_Claims_ incluidos en el JWT de sesión de Nemsy.],
+) <tab:jwt-claims>
+
+La _cookie_ que lleva el token se emite con tres atributos defensivos. `HttpOnly` impide que JavaScript lea su contenido, lo que neutraliza el robo de sesiones mediante XSS aunque el atacante consiguiera inyectar código en el frontend. `Secure` obliga a que el navegador la envíe únicamente sobre HTTPS. `SameSite=Lax` la excluye de las peticiones _cross-site_ no navegacionales, mitigando ataques CSRF en los _endpoints_ autenticados @owasp-cookies. El alcance se restringe al dominio `.nemsy.org` y la duración a siete días, tras los cuales el `exp` del propio JWT provoca el rechazo del token aunque la _cookie_ siguiera presente.
+
+En cada petición a una ruta protegida el `AuthMiddleware` extrae la _cookie_, parsea el token, comprueba que el método de firma es HMAC y, si la validación es satisfactoria, inyecta tres valores en el `context.Context` de la petición, el `UserInfo`, el `user_id` numérico y el `role`. La comprobación explícita del método de firma defiende contra el clásico ataque de confusión de algoritmos @jwt-alg-confusion en el que un atacante reenvía un token con cabecera `alg: none` o `alg: RS256` con el objetivo de que la librería lo valide con la clave incorrecta. Los tres valores se propagan a los _handlers_ subsiguientes a través de la cadena de _context_ de Go, que es la forma canónica de transmitir información asociada a una petición sin recurrir a variables globales o parámetros adicionales en cada función.
+
+Por último, el _middleware_ `AdminOnly` se anida dentro del grupo protegido por `AuthMiddleware` y constituye una segunda capa que comprueba que el `role` inyectado en el _context_ es exactamente `admin`. Cualquier otro valor, incluido el caso improbable de que el _claim_ esté ausente, se traduce en un `403 Forbidden`. Los dos _middlewares_ actúan en cascada porque responden a preguntas distintas, una de autenticación (quién es el usuario) y otra de autorización (qué puede hacer en cada operación), por lo que tiene sentido mantenerlas como piezas separadas en lugar de mezclarlas en una sola comprobación.
+
+=== Sistema de reportes y moderación <sec:reports>
+
+Cualquier plataforma que aloja contenido subido por usuarios necesita un mecanismo de moderación, tanto por motivos legales como por la propia experiencia de uso, ya que el material académico puede contener errores graves, infringir derechos de autor o incluso, en el peor escenario, aparecer subido como gancho para distribuir un binario malicioso disfrazado de PDF. Nemsy implementa un sistema deliberadamente sencillo en el que cualquier usuario autenticado puede reportar un recurso sospechoso y un grupo reducido de administradores revisa los reportes acumulados, decidiendo en cada caso si descartarlos como falso positivo o eliminar el recurso reportado.
+
+El endpoint `POST /api/resources/{id}/report` recibe un cuerpo JSON con un único campo `reason` que el _frontend_ obtiene de un formulario, lo valida (no puede estar vacío) e inserta una fila en la tabla `reports` con el identificador del recurso, el del usuario que reporta y el motivo. La integridad del sistema se apoya en una restricción `UNIQUE(resource_id, reporter_id)` definida en el esquema, que impide que un mismo usuario reporte dos veces el mismo recurso. El segundo intento devuelve un error de violación de unicidad de PostgreSQL que se traduce en un `500 Internal Server Error` desde el _handler_, lo que en la práctica funciona como protección frente a campañas de _spam_ de reportes coordinadas, ya que un atacante necesitaría una cuenta distinta por cada reporte y la barrera de entrada (autenticarse con Google) es lo suficientemente alta como para desalentar el abuso.
+
+El paquete `internal/admin` agrupa las tres operaciones disponibles para los administradores. La primera, `ListReports`, devuelve una vista paginada de los reportes pendientes con toda la información que el panel de administración necesita para tomar una decisión sin más consultas, incluyendo el título del recurso reportado, el nombre del autor original y el del usuario que lo ha reportado, y el motivo introducido. Esta agregación se resuelve con una única consulta SQL que une las tablas `reports`, `resources` y `users` (esta última dos veces, una por el reporter y otra por el owner), aprovechando la flexibilidad de sqlc para generar funciones tipadas a partir de _joins_ complejos sin las contorsiones que un ORM impondría sobre la misma consulta. Las otras dos operaciones son `DismissReport`, que descarta un reporte concreto sin afectar al recurso, y `DeleteResource`, que elimina el recurso completo cuando el reporte se confirma como legítimo.
+
+#figure(
+  {
+    set text(size: 9pt)
+    pad(x: -0.5cm, chronos.diagram({
+      chronos._par("u", display-name: "Usuario")
+      chronos._par("a", display-name: "Admin")
+      chronos._par("api", display-name: "Backend")
+      chronos._par("db", display-name: "PostgreSQL")
+      chronos._par("s3", display-name: "S3")
+
+      chronos._seq("u", "api", comment: [POST /api/resources/{id}/report])
+      chronos._seq("api", "db", comment: [INSERT reports])
+      chronos._seq("api", "u", comment: [201 Created], dashed: true)
+
+      chronos._seq("a", "api", comment: [GET /api/admin/reports])
+      chronos._seq("api", "db", comment: [SELECT con JOIN])
+      chronos._seq("db", "api", comment: [filas], dashed: true)
+      chronos._seq("api", "a", comment: [200 OK + JSON], dashed: true)
+
+      chronos._alt("falso positivo", {
+        chronos._seq("a", "api", comment: [DELETE /api/admin/reports/{id}])
+        chronos._seq("api", "db", comment: [DELETE FROM reports])
+        chronos._seq("api", "a", comment: [204 No Content], dashed: true)
+      })
+      chronos._alt("reporte legítimo", {
+        chronos._seq("a", "api", comment: [DELETE /api/admin/resources/{id}])
+        chronos._seq("api", "db", comment: [SELECT s3_keys])
+        chronos._seq("api", "db", comment: [DELETE FROM resources (cascade)])
+        chronos._seq("api", "s3", comment: [DeleteMultiple(s3_keys)])
+        chronos._seq("api", "a", comment: [204 No Content], dashed: true)
+      })
+    }))
+  },
+  caption: [Ciclo de vida de un reporte, desde la denuncia del usuario hasta la resolución por parte de un administrador.],
+) <fig:report-flow>
+
+La operación `DeleteResource` del administrador conviene examinarla con detalle porque combina dos mecanismos de limpieza distintos. Antes de borrar la fila de `resources`, el _handler_ consulta la lista de claves S3 asociadas al recurso mediante la consulta `ListS3KeysByResource`, que devuelve todos los `s3_key` registrados en la tabla `resource_files`. A continuación borra el recurso de la base de datos, lo que desencadena automáticamente el `ON DELETE CASCADE` declarado en el esquema y arrastra consigo las filas correspondientes de `resource_files` y `reports`. Por último, llama a `Storage.DeleteMultiple` con la lista previamente obtenida para eliminar los objetos del _bucket_ en una única petición. El orden importa, ya que invertir las dos primeras llamadas dejaría el sistema en un estado en el que `s3_keys` ya no se podría obtener (porque la fila habría sido borrada con todo lo que cuelga de ella) pero los objetos seguirían en S3.
+
+Esta operación es la versión administrativa del patrón de compensación introducido en @sec:create-resource, aunque aquí el compromiso es distinto. Un fallo en `DeleteMultiple` después del `DELETE` de PostgreSQL deja objetos huérfanos en S3 sin afectar al funcionamiento del sistema, ya que ninguna fila los referencia, por lo que el _handler_ se limita a registrar el error en el _log_ y devolver `204 No Content` al administrador. La limpieza tardía de esos objetos podría delegarse en una tarea periódica que enumere el _bucket_ y compare con la base de datos, pero por ahora no se ha implementado, ya que el volumen de borrados es reducido y el coste de almacenamiento de los objetos huérfanos resulta despreciable.
+
 == Implementación del frontend
 
-Detalles de implementación del frontend en SvelteKit...
+Tras la descripción del backend, esta sección recoge la otra mitad del sistema. El frontend es una aplicación SvelteKit que se encarga de presentar los datos expuestos por la API, gestionar la sesión del usuario y orquestar las interacciones más complejas, en particular la subida de recursos y la búsqueda. Los apartados siguientes recorren la organización del proyecto, el ciclo de vida de una página, el modelo de reactividad de Svelte 5, la comunicación con el backend, los dos flujos de interfaz más representativos (creación y búsqueda) y, por último, la adaptación a móvil y el sistema de componentes reutilizados.
+
+=== Estructura del proyecto
+
+El proyecto sigue la convención de SvelteKit, que distingue tres ámbitos por la ubicación de los ficheros. El directorio `src/routes/` define el árbol de URL mediante carpetas, donde cada `+page.svelte` es la página renderizada y los `+page.server.ts` que la acompañan ejecutan código exclusivamente en el servidor. El directorio `src/lib/` agrupa todo lo reutilizable entre páginas y es accesible desde cualquier punto mediante el alias `$lib`. Y los ficheros sueltos en la raíz de `src/` son los puntos de entrada de la aplicación: `app.html` es la plantilla HTML base, `app.css` carga Tailwind v4 mediante una sola directiva `@import "tailwindcss"`, y `hooks.server.ts` intercepta cada petición entrante antes de que llegue al _router_. La @fig:frontend-tree reproduce la salida de `tree src -L 4 -I node_modules --dirsfirst` ejecutado sobre la raíz del frontend, con los directorios resaltados como en una terminal real.
+
+#figure(
+  block(
+    fill: rgb("#000000"),
+    radius: 4pt,
+    inset: (x: 12pt, y: 8pt),
+    width: 100%,
+    {
+      set par(leading: 0.45em)
+      align(left, ansi-render(
+        read("../imagenes/frontend-tree.ansi"),
+        theme: terminal-themes.vscode,
+        font: "DejaVu Sans Mono",
+        size: 8.5pt,
+      ))
+    },
+  ),
+  caption: [Salida de `tree src -L 4 -I node_modules --dirsfirst` sobre la raíz del frontend.],
+  kind: image,
+) <fig:frontend-tree>
+
+Dentro de `src/lib/`, los componentes reutilizables se concentran en `components/`, las _custom actions_ de Svelte en `actions/`, las imágenes y otros recursos estáticos en `assets/`, y las definiciones compartidas de tipos en `types.ts`. Estas últimas son interfaces TypeScript que reflejan la forma de los DTO que devuelve la API (`User`, `Resource`, `Subject`, `ResourceFile`), de manera que cada respuesta JSON puede tiparse en el punto de consumo sin duplicar declaraciones. La @tab:directorios-frontend resume la responsabilidad de cada directorio.
+
+#figure(
+  {
+    set par(justify: false)
+    table(
+      columns: (auto, 1fr),
+      align: left,
+      table.header([*Directorio*], [*Responsabilidad*]),
+      [`src/routes/`],
+      [Páginas y _layouts_ de la aplicación. Cada carpeta define una URL y los ficheros con prefijo `+` tienen un rol asignado por SvelteKit (`+page.svelte`, `+page.server.ts`, `+layout.svelte`, `+layout.server.ts`).],
+
+      [`src/lib/components/`],
+      [Componentes Svelte reutilizables: visores de PDF, imagen y Markdown, lista de recursos, menú contextual, _avatar_ de usuario y resaltado de coincidencias en búsqueda.],
+
+      [`src/lib/actions/`],
+      [_Custom actions_ aplicables a cualquier elemento mediante `use:`. Actualmente alberga `clickOutside`, usada para cerrar menús al pulsar fuera.],
+
+      [`src/lib/types.ts`], [Interfaces TypeScript compartidas que reflejan los DTO de la API.],
+      [`hooks.server.ts`],
+      [_Middleware_ ejecutado en cada petición SSR antes del _router_, encargado de poblar `event.locals.user` a partir de la cookie de sesión.],
+
+      [`static/`], [Activos servidos tal cual por el servidor, como el `favicon.svg` y los iconos para PWA.],
+    )
+  },
+  caption: [Directorios principales del frontend y su responsabilidad.],
+) <tab:directorios-frontend>
+
+=== Ciclo de vida de una página <sec:lifecycle>
+
+Una de las características que distinguen a SvelteKit de un SPA tradicional es que la primera carga de cualquier página se renderiza en el servidor. El navegador recibe HTML completo con los datos ya inyectados, y solo después se hidrata la aplicación para tomar el control de las navegaciones siguientes en el cliente. La @fig:frontend-lifecycle ilustra las cinco fases de una petición a una ruta cualquiera.
+
+#figure(
+  {
+    set text(size: 9pt)
+    diagram(
+      node-stroke: .7pt,
+      node-corner-radius: 4pt,
+      node-inset: 6pt,
+      spacing: (0.6cm, 0.8cm),
+      node((0, 0), align(center)[1. `hooks.server.ts`\ (cookie → `locals.user`)], name: <h>, fill: rgb("#f4f4f5")),
+      node((1, 0), align(center)[2. `+layout.server.ts`\ `load` raíz], name: <l>, fill: rgb("#dcfce7")),
+      node((2, 0), align(center)[3. `+page.server.ts`\ `load` específico], name: <p>, fill: rgb("#fef9c3")),
+      node((2, 1), align(center)[4. Render SSR\ HTML + datos], name: <r>, fill: rgb("#dbeafe")),
+      node((1, 1), align(center)[5. Hidratación\ y navegación cliente], name: <hy>, fill: rgb("#ede9fe")),
+      edge(<h>, <l>, "->"),
+      edge(<l>, <p>, "->"),
+      edge(<p>, <r>, "->"),
+      edge(<r>, <hy>, "->"),
+    )
+  },
+  caption: [Fases de la primera carga de una página y transición a navegación cliente.],
+) <fig:frontend-lifecycle>
+
+El primer eslabón es el _hook_ `handle` definido en `hooks.server.ts`, que se ejecuta antes que cualquier `load`. Este _hook_ lee la cookie `session_token` enviada por el navegador y, si existe, la reenvía al backend mediante una llamada interna a `/api/me` para resolver el usuario autenticado. El resultado se deposita en `event.locals.user`, una estructura accesible desde cualquier `load` durante la misma petición. Centralizar esta operación en el _hook_ evita que cada página repita la consulta y, lo que es más importante, garantiza una única fuente de verdad sobre la identidad del usuario para toda la cadena de renderizado.
+
+A continuación se ejecuta el `load` del _layout_ raíz, que es el que ven todas las páginas que no estén bajo `/auth`. Su misión es exponer `data.me` al árbol de componentes y, de paso, redirigir al usuario hacia `/auth` cuando ha completado el _login_ con Google pero todavía no ha elegido estudio. Las páginas hijas obtienen este dato sin volver a pedirlo, gracias al patrón `parent()` de SvelteKit.
+
+#figure(
+  ```ts
+  // src/routes/+layout.server.ts
+  export const load: LayoutServerLoad = async ({ fetch, url }) => {
+      let me: User | null = null;
+      const res = await fetch(`${PUBLIC_API_BASE_URL}/api/me`, {
+          credentials: 'include',
+      });
+      if (res.ok) me = await res.json();
+
+      const isAuthPage = url.pathname.startsWith('/auth');
+      if (me && me.studyId == null && !isAuthPage) {
+          redirect(302, '/auth');
+      }
+      return { me };
+  };
+  ```,
+  caption: [_Load_ del _layout_ raíz, que expone el usuario y fuerza la elección de estudio antes de continuar.],
+  supplement: [Código],
+) <cod:layout-load>
+
+Las páginas que necesitan datos adicionales declaran su propio `+page.server.ts`. Por ejemplo, `/create` consulta las asignaturas fijadas del usuario para poblar el desplegable del formulario, y aprovecha la llamada a `parent()` para reutilizar el `me` ya resuelto en lugar de pedirlo de nuevo. Si el usuario no está autenticado o no ha elegido estudio, la página redirige antes de renderizar, descargando al cliente de cualquier comprobación.
+
+Concluido el `load`, SvelteKit serializa los datos en el HTML y los envía al navegador. La aplicación se hidrata, los _runes_ se inicializan y, a partir de ese momento, cada navegación interna se resuelve en el cliente reemplazando solo la zona de la página afectada. Esta arquitectura SSR-más-hidratación combina lo mejor de ambos mundos. La primera carga es rápida porque el HTML viaja con los datos ya impresos, y las navegaciones posteriores son instantáneas porque no requieren un viaje completo al servidor.
+
+=== Reactividad con runes de Svelte 5 <sec:runes>
+
+El frontend se construyó sobre Svelte 5, la versión que sustituyó el sistema de reactividad implícito por un modelo explícito basado en _runes_. En lugar de detectar dependencias mediante la reasignación de variables declaradas con `let`, Svelte 5 introduce funciones especiales que el compilador reconoce y traduce en señales reactivas. La @tab:runes resume las cuatro empleadas en el proyecto.
+
+#figure(
+  {
+    set par(justify: false)
+    table(
+      columns: (auto, 1fr, 1.4fr),
+      align: left,
+      table.header([*Rune*], [*Descripción*], [*Ejemplo de uso en Nemsy*]),
+      [`$state`],
+      [Declara un valor reactivo. Cualquier lectura desde la plantilla o desde un `$derived` se vuelve dependiente.],
+      [Estado del formulario `/create`: `title`, `description`, `selectedFiles`.],
+
+      [`$derived`],
+      [Define un valor calculado a partir de otros estados. Se recomputa automáticamente cuando cambian sus dependencias.],
+      [`filesArray = $derived(Array.from(selectedFiles))` para iterar el `Set` en la plantilla.],
+
+      [`$props`],
+      [Recibe las _props_ tipadas que el padre pasa al componente.],
+      [`let { data } = $props()` en cada `+page.svelte` para acceder al resultado del `load`.],
+
+      [`$effect`],
+      [Ejecuta un bloque cada vez que cambian los estados que lee. Útil para sincronizar estado con APIs externas (DOM, `localStorage`).],
+      [Persistencia del modo de vista compacto/comforte en `localStorage`.],
+    )
+  },
+  caption: [Runes de Svelte 5 utilizados en el frontend.],
+) <tab:runes>
+
+Un caso particularmente ilustrativo es el del formulario de creación, que combina los cuatro mecanismos en pocas líneas. La selección de archivos se almacena en un `Set<File>` reactivo, del que se deriva un array para iterar y, sobre ese array, otro `$derived` calcula el archivo que se mostrará en la previsualización lateral. El usuario puede forzar manualmente cuál ver con un click, lo que actualiza un tercer estado.
+
+#figure(
+  ```svelte
+  let selectedFiles = $state<Set<File>>(new Set());
+  let manualPreviewFile = $state<File | null>(null);
+
+  const filesArray = $derived(Array.from(selectedFiles));
+  const previewFile = $derived(
+      filesArray.length === 0
+          ? null
+          : manualPreviewFile !== null && filesArray.includes(manualPreviewFile)
+              ? manualPreviewFile
+              : filesArray[0]
+  );
+  ```,
+  caption: [Estado y derivaciones del visor de previsualización en `/create`.],
+  supplement: [Código],
+) <cod:runes-preview>
+
+La diferencia frente al modelo anterior de Svelte es que aquí no hay magia oculta. El compilador no necesita inferir qué variables son reactivas escaneando reasignaciones, sino que basta con que sigan la convención de los _runes_. Esto facilita razonar sobre el código y permite usar estado reactivo dentro de funciones, _stores_ y módulos sin las restricciones del compilador clásico.
+
+=== Comunicación con el backend <sec:api-client>
+
+La aplicación se comunica con el backend Go por dos caminos distintos según el momento del ciclo de vida de la página. Durante el SSR, las llamadas las realiza la función `fetch` que SvelteKit inyecta en cada `load`, una variante especial que reescribe las URL relativas y reenvía las cookies de la petición original. Tras la hidratación, las llamadas las hace directamente el navegador con la API `fetch` estándar, enviando la cookie `session_token` automáticamente al ser de primer nivel de dominio. El @fig:frontend-request ilustra el camino de una llamada autenticada.
+
+#figure(
+  {
+    set text(size: 9pt)
+    pad(x: -0.5cm, chronos.diagram({
+      chronos._par("b", display-name: "Navegador")
+      chronos._par("k", display-name: "SvelteKit (SSR)")
+      chronos._par("h", display-name: "hooks.server.ts")
+      chronos._par("a", display-name: "API Go")
+
+      chronos._seq("b", "k", comment: [GET /create\ Cookie: session_token])
+      chronos._seq("k", "h", comment: [handle()])
+      chronos._seq("h", "a", comment: [GET /api/me\ con cookie])
+      chronos._seq("a", "h", comment: [200 User], dashed: true)
+      chronos._seq("k", "a", comment: [GET /api/me/subjects])
+      chronos._seq("a", "k", comment: [200 Subject\[\]], dashed: true)
+      chronos._seq("k", "b", comment: [HTML + datos], dashed: true)
+    }))
+  },
+  caption: [Camino de una petición SSR autenticada hasta la API.],
+) <fig:frontend-request>
+
+El _endpoint_ base se inyecta a través de la variable de entorno `PUBLIC_API_BASE_URL`, que Vite expone tanto al servidor como al cliente con el prefijo `PUBLIC_`. En el cliente apunta al dominio público de la API y en el servidor puede apuntar a una dirección interna de la red de contenedores, lo que evita un salto innecesario por el balanceador en producción. La @tab:endpoints-frontend resume los _endpoints_ que el frontend consume agrupados por dominio.
+
+#figure(
+  {
+    set par(justify: false)
+    table(
+      columns: (auto, auto, 1fr),
+      align: left,
+      table.header([*Dominio*], [*Endpoint*], [*Uso*]),
+      table.cell(rowspan: 3, align: horizon)[Identidad],
+      [`GET /api/me`], [Resolver el usuario autenticado en `hooks.server.ts` y en el _layout_ raíz.],
+      [`PATCH /api/me`], [Actualizar universidad, estudio o asignaturas fijadas desde la pantalla de perfil.],
+      [`GET /api/me/subjects`], [Poblar el desplegable de asignaturas en `/create` y la lista lateral en `/`.],
+      table.cell(rowspan: 6, align: horizon)[Recursos],
+      [`POST /api/resources`], [Crear un recurso con archivos en formato `multipart/form-data`.],
+      [`GET /api/subjects/{id}/resources`], [Listar los recursos de una asignatura.],
+      [`GET /api/resources/search`], [Búsqueda de texto completo paginada (50 resultados por página).],
+      [`GET /api/resources/{id}/download`], [Descargar el recurso completo empaquetado en ZIP.],
+      [`GET /api/resources/{id}/files/{fileId}/download`], [Descargar un archivo individual del recurso.],
+      [`POST /api/resources/{id}/reports`], [Reportar un recurso desde el menú contextual.],
+      table.cell(rowspan: 2, align: horizon)[Búsqueda],
+      [`GET /api/universities/search`], [Autocompletado de universidad en `/auth`.],
+      [`GET /api/studies/search`], [Autocompletado de estudio tras elegir universidad.],
+      table.cell(rowspan: 3, align: horizon)[Admin],
+      [`GET /api/admin/reports`], [Listado de reportes en el panel de administración.],
+      [`POST /api/admin/reports/{id}/resolve`], [Resolver un reporte sin borrar el recurso.],
+      [`DELETE /api/admin/resources/{id}`], [Eliminar un recurso reportado.],
+    )
+  },
+  caption: [Endpoints de la API consumidos desde el frontend.],
+) <tab:endpoints-frontend>
+
+=== Subida de recursos: formulario multipaso <sec:upload>
+
+La pantalla `/create` es la más compleja del frontend y la que mejor refleja la combinación de _runes_, componentes de terceros y comunicación con la API. El usuario debe elegir una asignatura, asignar un título, redactar una descripción opcional, seleccionar uno o varios archivos y aceptar la cesión de derechos antes de poder enviar el formulario. Mientras compone el envío, una mitad de la pantalla muestra una previsualización del archivo seleccionado renderizada localmente con `URL.createObjectURL`, sin necesidad de subir nada al servidor todavía.
+
+La selección de asignatura emplea el componente `Combobox` de `bits-ui`, que permite escribir para filtrar y conserva el último valor escogido en `localStorage` bajo la clave `lastSubject`, de modo que las subidas consecutivas a la misma asignatura no exigen volver a buscarla. La selección de archivos utiliza el componente `FileUpload` de `melt` con _drag and drop_ y multiselección, que devuelve un `Set<File>` enlazado al estado reactivo del formulario. La previsualización se delega en tres visores propios alojados en `src/lib/components/`, cada uno especializado en un tipo de archivo, según muestra la @tab:visores.
+
+#figure(
+  {
+    set par(justify: false)
+    table(
+      columns: (auto, auto, 1fr),
+      align: left,
+      table.header([*Componente*], [*Tipos*], [*Tecnología*]),
+      [`PdfViewer.svelte`], [`.pdf`], [`pdfjs-dist` con renderizado por página y navegación.],
+      [`ImageViewer.svelte`], [`.jpg .png .gif .webp`], [Etiqueta `<img>` con encuadre adaptativo.],
+      [`MarkdownViewer.svelte`], [`.md .markdown`], [`marked` con sanitización antes del render.],
+    )
+  },
+  caption: [Visores de previsualización empleados en `/create` y en la consulta de recursos.],
+) <tab:visores>
+
+#figure(
+  grid(
+    columns: (1fr, auto),
+    column-gutter: 0.8em,
+    align: horizon + center,
+    image("../imagenes/nemsy_compartir.png", height: 8cm), image("../imagenes/nemsy_movil_compartir.png", height: 8cm),
+  ),
+  caption: [Formulario de creación de un recurso en escritorio y en móvil.],
+) <fig:create-form>
+
+Cuando el usuario pulsa enviar, el formulario construye un `FormData` con los campos textuales y cada archivo, y lo envía al endpoint `POST /api/resources` con `credentials: 'include'`. La respuesta exitosa devuelve el identificador del recurso recién creado, que se utiliza para redirigir al usuario a su perfil mediante `goto`. Los URL de objeto creados durante la previsualización se liberan en un `onDestroy` con `URL.revokeObjectURL` para no fugar memoria al desmontar la página.
+
+=== Búsqueda con _debounce_ y desplazamiento infinito <sec:search-ui>
+
+La búsqueda global en `/search` es una entrada de texto que dispara consultas al _endpoint_ FTS del backend descrito en @sec:tests-backend. Para no saturar la API mientras el usuario teclea, cada cambio en el _input_ programa una llamada con un retardo de 300 milisegundos, y un nuevo cambio en ese intervalo cancela la programada y arranca otra. Este patrón clásico de _debounce_ se implementa con `setTimeout` y `clearTimeout` sobre una variable suelta del módulo, sin necesidad de _runes_.
+
+#figure(
+  ```svelte
+  let query = $state('');
+  let results = $state<Resource[]>([]);
+  let debounceTimer: ReturnType<typeof setTimeout>;
+
+  function onInput() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => search(false), 300);
+  }
+  ```,
+  caption: [Implementación del _debounce_ en el _input_ de búsqueda.],
+  supplement: [Código],
+) <cod:debounce>
+
+La paginación es de tipo _scroll_ infinito. La función `search` acepta un parámetro `append` que, cuando es cierto, calcula el _offset_ a partir de los resultados ya cargados y concatena los nuevos al estado en lugar de reemplazarlo. Un `IntersectionObserver` montado en `onMount` vigila un elemento centinela colocado al final de la lista, y dispara una nueva llamada con `append = true` cada vez que el centinela entra en el _viewport_, siempre que haya más resultados disponibles y no haya otra petición en curso. Las coincidencias en el título y la descripción se resaltan con el componente `HighlightText`, que parte el texto en torno a los términos buscados y envuelve cada coincidencia en un `<mark>` con clases de Tailwind.
+
+=== Responsividad <sec:responsive>
+
+La interfaz se adapta a dos contextos de uso completamente distintos. En escritorio se prioriza la densidad de información y la navegación con el cursor, mientras que en móvil se busca minimizar los _taps_ y aprovechar los gestos. Esto ya se introdujo brevemente en la @tab:rutas, pero conviene detallar los mecanismos que lo hacen posible. La @tab:breakpoints recoge los _breakpoints_ de Tailwind v4 utilizados en el proyecto.
+
+#figure(
+  {
+    set par(justify: false)
+    table(
+      columns: (auto, auto, 1fr),
+      align: left,
+      table.header([*Prefijo*], [*Mínimo*], [*Uso típico en Nemsy*]),
+      [_(default)_], [0 px], [Estilos base, asumidos para móvil.],
+      [`md:`], [768 px], [Activación de la barra superior y desactivación de la barra inferior.],
+      [`lg:`], [1024 px], [Disposición a dos columnas en `/create` y en la consulta de recursos.],
+    )
+  },
+  caption: [_Breakpoints_ de Tailwind utilizados en el frontend.],
+) <tab:breakpoints>
+
+#figure(
+  grid(
+    columns: 1,
+    row-gutter: 0.6em,
+    image("../imagenes/nemsy_recurso.png", width: 100%),
+    align(center, image("../imagenes/nemsy_movil_recurso.png", height: 8cm)),
+  ),
+  caption: [Misma vista de recurso en escritorio y en móvil.],
+) <fig:responsive>
+
+El `+layout.svelte` raíz aplica este principio en su forma más pura. La barra de navegación superior se envuelve en clases `hidden md:flex`, lo que la oculta por defecto y solo la muestra a partir de 768 píxeles. Una segunda barra fija a la parte inferior, con tres iconos grandes para las acciones principales y un botón de acción flotante centrado para subir un recurso, lleva las clases inversas `flex md:hidden`, de manera que ambas se reemplazan limpiamente sin necesidad de _media queries_ explícitas en CSS. Las páginas internas siguen el mismo patrón. Por ejemplo, en `/create` la previsualización lateral se oculta en pantallas pequeñas y se muestra en una pestaña aparte, y en `/search` la rejilla de resultados pasa de cuatro columnas a una sola.
+
+=== Sistema de componentes
+
+El frontend se apoya en una pequeña selección de bibliotecas de componentes _headless_ que aportan accesibilidad y comportamiento sin imponer estilos, dejando que toda la apariencia se resuelva con utilidades de Tailwind. La @tab:libs-frontend resume cada una y su rol.
+
+#figure(
+  {
+    set par(justify: false)
+    table(
+      columns: (auto, 1fr),
+      align: left,
+      table.header([*Biblioteca*], [*Rol*]),
+      [`bits-ui`],
+      [Primitivas accesibles de UI: `Combobox`, `Dialog`, `Checkbox`, `DropdownMenu`. Cubren la mayoría de los controles de formulario y los modales.],
+
+      [`melt`],
+      [Builders de bajo nivel para casos no cubiertos por `bits-ui`. En el proyecto se usa `FileUpload` por su soporte nativo de _drag and drop_ con `Set<File>`.],
+
+      [`phosphor-svelte`],
+      [Iconografía completa con _tree-shaking_ por icono, lo que evita cargar el conjunto entero. Cada vista importa solo los iconos que necesita.],
+
+      [`tailwindcss` (v4)],
+      [Sistema de utilidades CSS configurado mediante `@import` en `app.css`, sin fichero `tailwind.config.js`.],
+    )
+  },
+  caption: [Bibliotecas de UI utilizadas en el frontend.],
+) <tab:libs-frontend>
+
+Por encima de estas primitivas, el directorio `src/lib/components/` aloja diez componentes propios con responsabilidades concretas. `ResourceList` y `ResourceView` son los más usados, pues aparecen tanto en la página de inicio como en los perfiles de usuario y en los resultados de búsqueda, y encapsulan la presentación de un recurso con sus archivos, autor, fecha y estadísticas. `ResourceMenu` despliega el menú contextual de cada recurso sobre la base de `DropdownMenu` de `bits-ui`, e incorpora la _custom action_ `clickOutside` para cerrarse al pulsar fuera. `UserAvatar` resuelve la imagen de perfil con un fallback a las iniciales del usuario cuando Google no devuelve avatar. Los tres visores ya mencionados (`PdfViewer`, `ImageViewer`, `MarkdownViewer`) y el `PdfThumbnail` que genera la miniatura de la primera página del PDF para los listados completan el listado de componentes propios. Esta separación entre primitivas externas y componentes de dominio mantiene los ficheros de las páginas concentrados en la lógica de la vista, mientras que los detalles de presentación quedan encapsulados y reutilizables.
+
+=== Panel de administración <sec:admin-panel>
+
+La ruta `/admin` da acceso a una vista reservada a los usuarios con rol de administrador, encargada de gestionar los reportes que los usuarios envían sobre los recursos compartidos. La protección se aplica en dos capas. En el frontend, el `+page.server.ts` comprueba `me.role === 'admin'` durante el `load` y redirige a la página de inicio en caso contrario, evitando renderizar la página por completo a usuarios sin permiso. En el backend, el _middleware_ `AdminOnly` introducido en @sec:auth-internals rechaza cualquier llamada a `/api/admin/*` con un `403 Forbidden` cuando el JWT del solicitante no contiene el _claim_ de administrador, de modo que la restricción se sostiene aunque el cliente intentara saltarse la comprobación del frontend.
+
+#figure(
+  image("../imagenes/nemsy_admin.png", width: 100%),
+  caption: [Panel de administración con la lista de reportes pendientes.],
+) <fig:admin-list>
+
+La pantalla muestra una tabla con los reportes ordenados por fecha de creación descendente, indicando para cada uno el recurso reportado, el reportante, el motivo y la antigüedad. Cada fila ofrece dos acciones excluyentes. La primera, _descartar_, marca el reporte como atendido sin tocar el recurso, útil cuando el administrador determina que el contenido es legítimo y el reporte infundado. La segunda, _eliminar_, dispara el `DELETE /api/admin/resources/{id}` descrito en @sec:reports tras una confirmación rápida, que borra el recurso y, en cascada, todos sus archivos en S3 y los reportes asociados.
 
 == Pruebas y validación
 
 Para garantizar la corrección y el rendimiento de la plataforma se aplicaron tres niveles de pruebas complementarios, cubriendo los tests unitarios del backend con el paquete `testing` de Go, los tests unitarios y _end to end_ del frontend con Vitest y Playwright, y una prueba de carga con k6 sobre la API desplegada en producción. Esta última no solo valida que el sistema no falla bajo carga, sino que sirve como demostración empírica del rendimiento de la plataforma, aportando los datos que respaldan uno de sus objetivos centrales, ofrecer una experiencia rápida como alternativa a Wuolah.
 
-=== Tests unitarios del backend
+=== Tests unitarios del backend <sec:tests-backend>
 
 Los tests unitarios del backend están escritos con el paquete `testing` de la librería estándar de Go y `httptest` para simular peticiones HTTP sin levantar un servidor real. Cada paquete define un `mockQuerier` que implementa la interfaz `QuerierWithTx` generada por sqlc, de forma que los tests son completamente independientes de la base de datos y se ejecutan de forma determinista.
 
@@ -830,7 +1634,7 @@ El componente `HighlightText` resalta la subcadena buscada dentro de un texto en
   supplement: [Código],
 ) <cod:highlight-test>
 
-La acción `clickOutside` detecta clics fuera de un elemento del DOM y emite un evento `outclick`, usado para cerrar menús desplegables. Sus tests verifican que el evento se dispara al hacer clic fuera del nodo, que no se dispara al hacer clic dentro, y que deja de escuchar tras llamar a `destroy`.
+La acción `clickOutside` detecta clics fuera de un elemento del DOM y emite un evento `outclick`, usado para cerrar menús desplegables. Los tests verifican tanto que el evento se dispara al hacer clic fuera del nodo, como que no se dispara al hacer clic dentro, y que deja de escuchar tras llamar a `destroy`.
 
 #figure(
   ```typescript
@@ -858,7 +1662,7 @@ La acción `clickOutside` detecta clics fuera de un elemento del DOM y emite un 
 
 Los tests _end to end_ (E2E) verifican los flujos de la aplicación desde el punto de vista del navegador, ejecutando interacciones reales contra el frontend y el backend levantados localmente. Se escribieron con Playwright @playwright-docs, una herramienta de automatización de navegadores que permite controlar Chrome, Firefox y Safari desde código TypeScript.
 
-El principal reto de los tests E2E en Nemsy es que la autenticación delega en Google OAuth2, cuyo flujo no puede automatizarse en un entorno de pruebas. La solución adoptada es inyectar directamente una cookie `session_token` con un JWT firmado antes de cada test, usando un helper `generateTestJWT` implementado en TypeScript con la API de criptografía de Node.js. De este modo, los tests arrancan ya autenticados sin pasar por el flujo de Google.
+El principal reto de los tests E2E de Nemsy es que como la autenticación se delega completamente en Google OAuth2, cuyo flujo no puede automatizarse en un entorno de pruebas, es necesario inyectar directamente una cookie `session_token` con un JWT firmado antes de cada test, usando un helper `generateTestJWT` implementado en TypeScript con la API de criptografía de Node.js. Con esta solución, los tests arrancan ya autenticados sin pasar por el flujo de Google.
 
 #figure(
   ```typescript
@@ -898,7 +1702,9 @@ Los tests están organizados en dos grupos. El grupo `logged out` verifica que l
 
 === Validación de rendimiento
 
-==== Prueba de carga con k6
+Más allá de comprobar que el código funciona, conviene medir cómo se comporta la plataforma bajo condiciones realistas y cómo se percibe desde el navegador del usuario. Para cubrir ambos planos se aplicaron dos validaciones complementarias, una prueba de carga con k6 sobre la API en producción que mide la capacidad del servidor frente a tráfico concurrente, y un análisis con Lighthouse que evalúa la experiencia de usuario en métricas de rendimiento, accesibilidad, buenas prácticas y SEO, comparada directamente con la de Wuolah.
+
+==== Prueba de carga con k6 <sec:k6>
 
 Para validar empíricamente el rendimiento de la API bajo condiciones de uso realistas se realizó una prueba de carga con k6 @k6-docs, una herramienta de código abierto orientada a pruebas de rendimiento de APIs HTTP. El escenario simula usuarios virtuales (VUs) navegando por la aplicación, ejecutando en bucle una de tres acciones de forma aleatoria: consultar su perfil y asignaturas, buscar recursos por texto completo o consultar el detalle de un recurso concreto, con pausas de entre 0,5 y 1,5 segundos entre peticiones para simular el tiempo que un usuario real emplea leyendo.
 
@@ -928,7 +1734,7 @@ Un VU de k6 no equivale a un usuario real ya que un usuario real hace peticiones
   caption: [Latencias por endpoint en la prueba de carga con k6 (100 VUs, 0 % de errores).],
 ) <tab:k6>
 
-El modelo de rendimiento RAIL de Google @google-rail establece que las respuestas del servidor deben llegar en menos de 100 ms para que el usuario perciba la interacción como inmediata. Como se puede observar en la @fig:k6-run y en la @tab:k6, la API de Nemsy obtiene un p95 global de 3,45 ms bajo 100 VUs concurrentes, casi treinta veces por debajo de ese umbral, con una tasa de error del 0 %. Cabe destacar que estas latencias corresponden exclusivamente al servidor, el tiempo que percibe el usuario final incluye además la red, el renderizado del navegador y la ejecución del JavaScript del frontend.
+El modelo de rendimiento RAIL de Google @google-rail establece que las respuestas del servidor deben llegar en menos de 100 ms para que el usuario perciba la interacción como inmediata. Como se puede observar en la @fig:k6-run y en la @tab:k6, la API de Nemsy obtiene un p95 global de 3,45 ms bajo 100 VUs concurrentes, casi treinta veces por debajo de ese umbral, con una tasa de error del 0 %. Cabe destacar que estas latencias corresponden exclusivamente al servidor pero el tiempo que percibe el usuario final incluye además la red, el renderizado del navegador y la ejecución del JavaScript del frontend.
 
 El script de prueba se encuentra en `tests/k6/stress-test.js`. Para ejecutar las rutas protegidas, se incluyó un generador de tokens JWT en `backend/cmd/gen-token/main.go` que firma un token con el mismo secreto que el servidor, evitando la necesidad de pasar por el flujo de Google OAuth2 durante la prueba.
 
@@ -942,7 +1748,7 @@ Para medir el rendimiento desde la perspectiva del usuario se utilizó Google Li
     column-gutter: 0.5em,
     image("../imagenes/lighthouse_wuolah.png"), image("../imagenes/lighthouse_nemsy.png"),
   ),
-  caption: [Comparativa de puntuaciones Lighthouse entre Wuolah (izquierda) y Nemsy (derecha).],
+  caption: [Comparativa de puntuaciones Lighthouse entre Wuolah y Nemsy.],
 ) <fig:lighthouse-comparison>
 
 Nemsy obtiene una puntuación de rendimiento de 100 sobre 100, frente al 32 de Wuolah. La diferencia responde principalmente a la ausencia de publicidad y scripts de terceros, que en Wuolah son la principal fuente de bloqueo del hilo principal del navegador, a un bundle de JavaScript mínimo gracias a que Svelte compila los componentes a JavaScript puro sin necesidad de ningún framework en tiempo de ejecución, y a una API en Go que, como demuestran los resultados de la sección anterior, responde en menos de 4 ms en el percentil 95 independientemente de la carga concurrente.

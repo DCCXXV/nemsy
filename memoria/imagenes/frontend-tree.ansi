@@ -1,0 +1,53 @@
+[01;34msrc[0m
+├── [01;34mlib[0m
+│   ├── [01;34mactions[0m
+│   │   ├── clickOutside.svelte.test.ts
+│   │   └── clickOutside.ts
+│   ├── [01;34massets[0m
+│   │   └── [01;34mimages[0m
+│   │       └── [01;35mscreenshot.png[0m
+│   ├── [01;34mcomponents[0m
+│   │   ├── HighlightText.svelte
+│   │   ├── HighlightText.svelte.test.ts
+│   │   ├── ImageViewer.svelte
+│   │   ├── MarkdownViewer.svelte
+│   │   ├── PdfThumbnail.svelte
+│   │   ├── PdfViewer.svelte
+│   │   ├── ResourceList.svelte
+│   │   ├── ResourceMenu.svelte
+│   │   ├── ResourceView.svelte
+│   │   └── UserAvatar.svelte
+│   ├── index.ts
+│   └── types.ts
+├── [01;34mroutes[0m
+│   ├── [01;34madmin[0m
+│   │   ├── +page.server.ts
+│   │   └── +page.svelte
+│   ├── [01;34mauth[0m
+│   │   ├── +layout.svelte
+│   │   └── +page.svelte
+│   ├── [01;34mcookies[0m
+│   │   └── +page.svelte
+│   ├── [01;34mcreate[0m
+│   │   ├── +page.server.ts
+│   │   └── +page.svelte
+│   ├── [01;34mprivacy[0m
+│   │   └── +page.svelte
+│   ├── [01;34msearch[0m
+│   │   └── +page.svelte
+│   ├── [01;34mtos[0m
+│   │   └── +page.svelte
+│   ├── [01;34muser[0m
+│   │   └── [01;34m[slug][0m
+│   │       ├── +page.server.ts
+│   │       └── +page.svelte
+│   ├── +layout.server.ts
+│   ├── +layout.svelte
+│   ├── +page.server.ts
+│   └── +page.svelte
+├── app.css
+├── app.d.ts
+├── app.html
+└── hooks.server.ts
+
+16 directories, 35 files

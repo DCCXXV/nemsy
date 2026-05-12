@@ -1,0 +1,84 @@
+.
+├── [01;34mcmd[0m
+│   ├── [01;34mgen-token[0m
+│   │   └── main.go
+│   ├── [01;34mseed-studies[0m
+│   │   └── scrape_ucm.py
+│   ├── [01;34mseed-universities[0m
+│   │   └── main.go
+│   └── [01;34mserver[0m
+│       └── main.go
+├── Dockerfile
+├── go.mod
+├── go.sum
+├── [01;34minternal[0m
+│   ├── [01;34madmin[0m
+│   │   ├── handler.go
+│   │   └── handler_test.go
+│   ├── [01;34mapp[0m
+│   │   └── app.go
+│   ├── [01;34mauth[0m
+│   │   ├── admin.go
+│   │   ├── handler.go
+│   │   ├── middleware.go
+│   │   ├── statestore.go
+│   │   ├── utils.go
+│   │   └── utils_test.go
+│   ├── [01;34mdb[0m
+│   │   ├── [01;34mgenerated[0m
+│   │   │   ├── db.go
+│   │   │   ├── models.go
+│   │   │   ├── querier.go
+│   │   │   ├── reports.sql.go
+│   │   │   ├── resource_files.sql.go
+│   │   │   ├── resources.sql.go
+│   │   │   ├── studies.sql.go
+│   │   │   ├── subjects.sql.go
+│   │   │   ├── universities.sql.go
+│   │   │   └── users.sql.go
+│   │   ├── [01;34mmigrations[0m
+│   │   │   ├── 000001_init.down.sql
+│   │   │   ├── 000001_init.up.sql
+│   │   │   ├── 000002_multi_files.down.sql
+│   │   │   ├── 000002_multi_files.up.sql
+│   │   │   ├── 000003_pinned_subjects.down.sql
+│   │   │   ├── 000003_pinned_subjects.up.sql
+│   │   │   ├── 000004_username.down.sql
+│   │   │   ├── 000004_username.up.sql
+│   │   │   ├── 000005_download_count.down.sql
+│   │   │   ├── 000005_download_count.up.sql
+│   │   │   ├── 000006_search_vector.down.sql
+│   │   │   ├── 000006_search_vector.up.sql
+│   │   │   ├── 000007_universities.down.sql
+│   │   │   ├── 000007_universities.up.sql
+│   │   │   ├── 000008_unaccent_search.down.sql
+│   │   │   ├── 000008_unaccent_search.up.sql
+│   │   │   ├── 000009_user_role.down.sql
+│   │   │   └── 000009_user_role.up.sql
+│   │   ├── [01;34mqueries[0m
+│   │   │   ├── reports.sql
+│   │   │   ├── resource_files.sql
+│   │   │   ├── resources.sql
+│   │   │   ├── studies.sql
+│   │   │   ├── subjects.sql
+│   │   │   ├── universities.sql
+│   │   │   └── users.sql
+│   │   └── sqlc.yaml
+│   ├── [01;34mresources[0m
+│   │   ├── handler.go
+│   │   └── handler_test.go
+│   ├── [01;34msearch[0m
+│   │   ├── query.go
+│   │   └── query_test.go
+│   ├── [01;34mstorage[0m
+│   │   └── s3.go
+│   ├── [01;34mstudies[0m
+│   │   ├── handler.go
+│   │   └── handler_test.go
+│   ├── [01;34muniversities[0m
+│   │   ├── handler.go
+│   │   └── handler_test.go
+│   └── [01;34musers[0m
+│       ├── handler.go
+│       └── handler_test.go
+└── tools.go
